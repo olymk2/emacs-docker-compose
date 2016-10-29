@@ -28,6 +28,10 @@
 
 ;;; Code:
 
+(require 'cl)
+;;(require 'projectile)
+(require 'projectile)
+
 ;;wrapper for docker shell commands backgrounded
 (defun dc-docker-run (name command params)
   (message (format "dc-docker-run docker %s %s %s &" command name params))
@@ -63,12 +67,13 @@
   (dc-docker-compose-run "down" "" ""))
 
 ;; run a command on a docker container
-(defun dc-docker-exec (name command)
+(defun dc-docker-exec (name &optional command)
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
+  (unless command (setq command (read-string "Shell Command:")))
   (dc-docker-run name "exec -it" command))
 
 ;; run a command on a compose container
-(defun dc-docker-compose-exec (name command)
+(defun dc-docker-compose-exec (name &optional command)
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
   (let ((bind_path (docker-compose-bound-project-path name)))
     (dc-docker-compose-run name "exec" command)))
@@ -98,14 +103,14 @@
         '((name . "Docker Containers")
           (candidates . dc-docker-names)
           (action . (lambda (candidate)
-                      (docker-compose-run-tests candidate)))))
+                      (dc-docker-exec candidate)))))
 
   ;; helm source for docker compose containers
   (setq helm-docker-compose-containers
         '((name . "Docker Compose Containers")
           (candidates . dc-docker-compose-names)
           (action . (lambda (candidate)
-                      (docker-compose-run-tests candidate)))))
+                      (dc-docker-compose-exec candidate)))))
 
   (helm :sources '(helm-docker-compose-containers helm-docker-containers) :buffer "*helm container*"))
 

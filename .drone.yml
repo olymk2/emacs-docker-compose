@@ -1,0 +1,5 @@
+build:
+  image: jare/spacemacs:base
+  pull: true
+  commands:
+    - emacs -batch -l ert -l docker-compose.el -f ert-run-tests-batch-and-exit
