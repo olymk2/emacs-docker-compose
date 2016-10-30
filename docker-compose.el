@@ -68,9 +68,16 @@
    (format "cd %s;docker-compose %s %s %s" (dc-compose-root) command name params)))
 
 ;; bring up your compose container
-(defun dc-docker-compose-up ()
+(defun dc-docker-compose-up (&optional flag)
   (interactive)
-  (dc-docker-compose-run "up" "" ""))
+  (unless flag (setq command (read-string "Shell Command:")))
+  (dc-docker-compose-run "up" flag))
+
+;; bring up your compose container
+(defun dc-docker-compose-logs (&optional flag)
+  (interactive)
+  (unless flag (setq command (read-string "Shell Command:")))
+  (dc-docker-compose-run "up" flag))
 
 ;; shutdown your compose container
 (defun dc-docker-compose-down ()
@@ -143,13 +150,28 @@
 
 (defun dc-run-test (function_name)
   (interactive)
-  (message "%s" )
+  (message "%s" "test")
+)
+
+(defun dc-test-file ()
+    (interactive)
+    (replace-regexp-in-string (docker-compose-bound-project-path) "" buffer-file-name)
+)
+
+(defun dc-python-test ()
+  ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
+  (dc-docker-compose-exec "mhackspace_uwsgi" "pytest")
+)
+
+(defun dc-php-test ()
+  ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
+  (dc-docker-compose-exec "mhackspace_uwsgi" "/var/www/vendor/bin/phpunit ")
 )
 
 (ert-deftest pp-test-docker-compose-container-names ()
   "Test compose container name lookup return values"
   (cl-letf (((symbol-function 'shell-command-to-string) (lambda (_) "")))
-    (should (equal (dc-docker-compose-names) nil))))
+    (should-error (dc-docker-compose-names))))
 
 
 (ert-deftest pp-test-docker-container-names ()
@@ -157,5 +179,22 @@
   (cl-letf (((symbol-function 'shell-command-to-string) (lambda (_) "")))
     (should (equal (dc-docker-names) nil))))
 
+(defhydra dc-launcher (:color blue :columns 4)
+"
+Docker Compose Menu
+| Docker Compose                                | Docker |
+|-----------------------------------------------|--------|
+| _u_: Start Background | _U_: Start Foreground |
+| _l_: Logs             | _L_: Logs realtime    |
+"
+  ("U" (dc-docker-compose-up) "Startup")
+  ("u" (dc-docker-compose-up "-d") "Startup Background")
+  ("d" (dc-docker-compose-down) "Shutdown")
+  ("l" (dc-docker-compose-logs) "Logs")
+  ("L" (dc-docker-compose-logs "-f") "Logs Realtime")
+  ("e" (dc-docker-compose-exec) "Run command")
+  ("q" nil "Quit"))
+
+(global-set-key (kbd "C-c d") 'dc-launcher/body)
 ;;; docker-compose.el ends here
 ;;(provide 'docker-compose) 

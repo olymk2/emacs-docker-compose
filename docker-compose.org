@@ -1,0 +1,23 @@
+#+TITLE: Docker compose usage
+
+
+C-c d Show compose menu 
+
+Get list of all container names
+#+BEGIN_SRC emacs-lisp
+  (dc-docker-names)
+#+END_SRC
+
+Get list of all compose container names, looks for a compose file from current buffer
+#+BEGIN_SRC emacs-lisp
+  (dc-docker-compose-names)
+#+END_SRC
+
+Install docker compose plugin
+#+BEGIN_SRC emacs-lisp
+(:name el-get
+       :type git
+       :url "git://github.com/olymk2/emacs-docker-compose.git"
+       :features docker-compose
+       :compile "docker-compose.el")
+#+END_SRC
