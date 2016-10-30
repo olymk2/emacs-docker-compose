@@ -30,6 +30,7 @@
 ;;; Code:
 
 (require 'cl)
+(require 'hydra)
 
 
 (setq dc-test-commands '(
