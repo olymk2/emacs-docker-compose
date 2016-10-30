@@ -7,6 +7,7 @@
 ;; Keywords: Docker Test 
 ;; Version: 0.1
 ;; Created 29 October 2016
+;; TODO remove / update this
 ;; Package-Requires: ((projectile "0.14"))
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -29,8 +30,18 @@
 ;;; Code:
 
 (require 'cl)
-;;(require 'projectile)
-(require 'projectile)
+
+
+(setq dc-test-commands '(
+  (php-mode . phpunit)
+  (python-mode . pytest)))
+
+;; hunt for compose project root
+(defun dc-compose-root ()
+  (let ((root-path (locate-dominating-file default-directory "docker-compose.yml")))
+    (if root-path
+      root-path
+      (error "Missing docker-compose.yml not found in directory tree"))))
 
 ;;wrapper for docker shell commands backgrounded
 (defun dc-docker-run (name command params)
@@ -48,13 +59,13 @@
 (defun dc-docker-compose-run (name command params)
   (message (format "dc-docker-compose-run docker-compose %s %s %s &" command name params))
   (shell-command
-   (format "cd %s;docker-compose %s %s %s &" (projectile-project-root) command name params)))
+   (format "cd %s;docker-compose %s %s %s &" (dc-compose-root) command name params)))
 
 ;; wrapper for compose shell commands not backgrounded
 (defun dc-docker-compose-run-return (name command params)
   (message (format "dc-docker-compose-run-return docker-compose %s %s %s" command name params))
   (shell-command-to-string
-   (format "cd %s;docker-compose %s %s %s" (projectile-project-root) command name params)))
+   (format "cd %s;docker-compose %s %s %s" (dc-compose-root) command name params)))
 
 ;; bring up your compose container
 (defun dc-docker-compose-up ()
@@ -75,6 +86,7 @@
 ;; run a command on a compose container
 (defun dc-docker-compose-exec (name &optional command)
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
+  (unless command (setq command (read-string "Shell Command:")))
   (let ((bind_path (docker-compose-bound-project-path name)))
     (dc-docker-compose-run name "exec" command)))
 
@@ -82,18 +94,33 @@
 (defun dc-docker-names ()
   (interactive)
   (let ((container_ids (split-string (dc-docker-run-return "ps -q" "" "") "\n" t)))
-    (list (loop for el in container_ids collect
-      (substring (dc-docker-run-return el "inspect -f \"{{ .Name }}\"" "") 1 -1)))))
- 
+    (loop for el in container_ids collect
+      (substring (dc-docker-run-return el "inspect -f \"{{ .Name }}\"" "") 1 -1))))
+
 ;; return list of docker names
 (defun dc-docker-compose-names ()
   (interactive)
-  (let ((dotcomposefile (format "%sdocker-compose.yml" (projectile-project-root))))
+  (let ((dotcomposefile (format "%sdocker-compose.yml" (dc-compose-root))))
     (if (file-exists-p dotcomposefile)
       (split-string (dc-docker-compose-run-return "" "config --services" "") "\n" t)
       (message "Missing compose file @%s" dotcomposefile)
       nil)))
 
+;; give a container name, map the project path to the container path if possible
+(defun docker-compose-bound-project-path (container)
+  (let ((container_path  
+    (split-string
+    (substring 
+      (shell-command-to-string 
+      (format "docker inspect --format='{{ json .HostConfig.Binds }}' %s" container)) 1 -1) ","))) 
+
+    ;; clean up the result of json .HostConfig.Binds
+    (defsubst clean-bind (name listpos)
+      (nth listpos (split-string (substring name 1 -1) ":")))
+
+    ;; loop through the binds and filters ones that don't match the root path
+    (loop for el in container_path if 
+      (string= (clean-bind el 0) (projectile-project-root)) collect (clean-bind el 1))))
 
 ;; show helm view to select container by name
 (defun dc-helm-select-container ()
@@ -114,18 +141,21 @@
 
   (helm :sources '(helm-docker-compose-containers helm-docker-containers) :buffer "*helm container*"))
 
+(defun dc-run-test (function_name)
+  (interactive)
+  (message "%s" )
+)
+
 (ert-deftest pp-test-docker-compose-container-names ()
   "Test compose container name lookup return values"
   (cl-letf (((symbol-function 'shell-command-to-string) (lambda (_) "")))
-    (should (equal (dc-docker-compose-names) (list)))))
+    (should (equal (dc-docker-compose-names) nil))))
 
 
 (ert-deftest pp-test-docker-container-names ()
   "Test container name lookup return values"
   (cl-letf (((symbol-function 'shell-command-to-string) (lambda (_) "")))
-    (should (equal (dc-docker-names) '(nil)))))
-
-
+    (should (equal (dc-docker-names) nil))))
 
 ;;; docker-compose.el ends here
 ;;(provide 'docker-compose) 
