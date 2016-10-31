@@ -42,7 +42,7 @@
   (let ((root-path (locate-dominating-file default-directory "docker-compose.yml")))
     (if root-path
       root-path
-      (error "Missing docker-compose.yml not found in directory tree"))))
+      (message "Missing docker-compose.yml not found in directory tree"))))
 
 ;;wrapper for docker shell commands backgrounded
 (defun dc-docker-run (name command params)
@@ -205,6 +205,6 @@ Docker Compose Menu
   ("q" nil "Quit"))
 
 (global-set-key (kbd "C-c d") 'dc-launcher/body)
-(evil-leader/set-key "d" "test" 'dc-launcher/body "Docker")
+(evil-leader/set-key "d" 'dc-launcher/body)
 ;;; docker-compose.el ends here
 ;;(provide 'docker-compose) 
