@@ -44,6 +44,12 @@
       root-path
       (message "Missing docker-compose.yml not found in directory tree"))))
 
+;; hunt for compose project root
+(defun dc-compose-exists ()
+  (if (file-exists-p (format "%sdocker-compose.yml" (dc-compose-root)))
+    t
+    (error "Missing docker-compose.yml aborting current command")))
+
 ;;wrapper for docker shell commands backgrounded
 (defun dc-docker-run (name command params)
   (message (format "dc-docker-run docker %s %s %s &" command name params))
@@ -59,32 +65,34 @@
 ;; wrapper for compose shell commands backgrounded
 (defun dc-docker-compose-run (name command params)
   (message (format "dc-docker-compose-run docker-compose %s %s %s &" command name params))
+  (dc-compose-exists)
   (shell-command
    (format "cd %s;docker-compose %s %s %s &" (dc-compose-root) command name params)))
 
 ;; wrapper for compose shell commands not backgrounded
 (defun dc-docker-compose-run-return (name command params)
   (message (format "dc-docker-compose-run-return docker-compose %s %s %s" command name params))
+  (dc-compose-exists)
   (shell-command-to-string
    (format "cd %s;docker-compose %s %s %s" (dc-compose-root) command name params)))
 
 ;; bring up your compose container
 (defun dc-docker-compose-up (&optional flag)
   (interactive)
-  (unless flag (setq command (read-string "Shell Command:")))
-  (dc-docker-compose-run "up" flag))
+  (unless flag (setq flag ""))
+  (dc-docker-compose-run "" "up" flag))
 
 ;; bring up your compose container
 (defun dc-docker-compose-logs (&optional flag)
   (interactive)
-  (unless flag (setq command (read-string "Shell Command:")))
-  (dc-docker-compose-run "up" flag))
+  (unless flag (setq flag "")
+  (dc-docker-compose-run "" "up" flag)))
 
 ;; bring up your compose container
 (defun dc-docker-compose-ps (&optional flag)
   (interactive)
-  (unless flag (setq command (read-string "Shell Command:")))
-  (dc-docker-compose-run "ps" flag))
+  (unless flag (setq flag ""))
+  (dc-docker-compose-run "" "ps" flag))
 
 ;; shutdown your compose container
 (defun dc-docker-compose-down ()
@@ -157,7 +165,7 @@
 
 (defun dc-run-test (function_name)
   (interactive)
-  (message "%s" "test")
+  (message "%s" function_name)
 )
 
 (defun dc-test-file ()
@@ -175,10 +183,15 @@
   (dc-docker-compose-exec "mhackspace_uwsgi" "/var/www/vendor/bin/phpunit ")
 )
 
+
+(ert-deftest pp-test-missing-docker-compose-errors ()
+  "Test compose container name lookup return values"
+  (should-error (dc-compose-exists)))
+
 (ert-deftest pp-test-docker-compose-container-names ()
   "Test compose container name lookup return values"
   (cl-letf (((symbol-function 'shell-command-to-string) (lambda (_) "")))
-    (should-error (dc-docker-compose-names))))
+    (should (equal (dc-docker-compose-names) nil))))
 
 
 (ert-deftest pp-test-docker-container-names ()
