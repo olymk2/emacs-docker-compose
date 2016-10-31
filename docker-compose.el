@@ -80,6 +80,12 @@
   (unless flag (setq command (read-string "Shell Command:")))
   (dc-docker-compose-run "up" flag))
 
+;; bring up your compose container
+(defun dc-docker-compose-ps (&optional flag)
+  (interactive)
+  (unless flag (setq command (read-string "Shell Command:")))
+  (dc-docker-compose-run "ps" flag))
+
 ;; shutdown your compose container
 (defun dc-docker-compose-down ()
   (interactive)
@@ -187,15 +193,18 @@ Docker Compose Menu
 |-----------------------------------------------|--------|
 | _u_: Start Background | _U_: Start Foreground |
 | _l_: Logs             | _L_: Logs realtime    |
+| _p_: List Containers  |                       |
 "
   ("U" (dc-docker-compose-up) "Startup")
   ("u" (dc-docker-compose-up "-d") "Startup Background")
   ("d" (dc-docker-compose-down) "Shutdown")
   ("l" (dc-docker-compose-logs) "Logs")
+  ("p" (dc-docker-compose-ps) "Process list")
   ("L" (dc-docker-compose-logs "-f") "Logs Realtime")
   ("e" (dc-docker-compose-exec) "Run command")
   ("q" nil "Quit"))
 
 (global-set-key (kbd "C-c d") 'dc-launcher/body)
+(evil-leader/set-key "d" "test" 'dc-launcher/body "Docker")
 ;;; docker-compose.el ends here
 ;;(provide 'docker-compose) 

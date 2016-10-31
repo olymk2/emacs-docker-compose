@@ -1,6 +1,7 @@
 pipeline:
   build:
-    image: jare/spacemacs:base
+    image: jare/spacemacs:latest
     pull: true
     commands:
       - emacs -batch -l ert -l docker-compose.el -f ert-run-tests-batch-and-exit
+#/home/jare
