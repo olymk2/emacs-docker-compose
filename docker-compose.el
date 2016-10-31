@@ -29,6 +29,9 @@
 
 ;;; Code:
 
+;;http://jakemccrary.com/blog/2013/08/10/emacs-capture-shell-command-output-in-temporary-buffer
+;;(start-process "docker-process" "* Docker *" "shell)
+
 (require 'cl)
 (require 'hydra)
 
@@ -36,6 +39,17 @@
 (setq dc-test-commands '(
   (php-mode . phpunit)
   (python-mode . pytest)))
+
+(setq dc-buffer "*Docker*")
+(get-buffer-create dc-buffer)
+
+
+(setq dc-str-addresses "{{printf \"%.30s\" .Name}} @
+{{printf \"\%.20s\" .Config.Image}} @
+http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSettings.IPAddress}}
+{{else}}
+{{range .NetworkSettings.Networks}}{{printf \"\%.22s\" .IPAddress}}{{end}}{{end}} @
+{{printf \"\%.10s\" .State.Status}}")
 
 ;; hunt for compose project root
 (defun dc-compose-root ()
@@ -59,22 +73,32 @@
 ;;wrapper for docker shell command but return as string not backgrounded
 (defun dc-docker-run-return (name command params)
   (message (format "dc-docker-run-return docker %s %s %s" command name params))
+  (switch-to-buffer-other-window dc-buffer)
+  (special-mode)
   (shell-command-to-string
-    (format "docker %s %s %s" command name params)))
+    (format "docker %s %s %s" command name params) dc-buffer))
 
+;;TODO use default dir
 ;; wrapper for compose shell commands backgrounded
 (defun dc-docker-compose-run (name command params)
   (message (format "dc-docker-compose-run docker-compose %s %s %s &" command name params))
   (dc-compose-exists)
+  (switch-to-buffer-other-window dc-buffer)
+  (with-current-buffer dc-buffer 
+    (special-mode))
   (shell-command
-   (format "cd %s;docker-compose %s %s %s &" (dc-compose-root) command name params)))
+   (format "cd %s;docker-compose %s %s %s &" (dc-compose-root) command name params) dc-buffer))
 
+;;TODO use default dir
 ;; wrapper for compose shell commands not backgrounded
 (defun dc-docker-compose-run-return (name command params)
   (message (format "dc-docker-compose-run-return docker-compose %s %s %s" command name params))
   (dc-compose-exists)
-  (shell-command-to-string
-   (format "cd %s;docker-compose %s %s %s" (dc-compose-root) command name params)))
+  (switch-to-buffer-other-window dc-buffer)
+  (with-current-buffer dc-buffer 
+    (special-mode))
+  (shell-command
+   (format "cd %s;docker-compose %s %s %s" (dc-compose-root) command name params) dc-buffer))
 
 ;; bring up your compose container
 (defun dc-docker-compose-up (&optional flag)
@@ -88,11 +112,17 @@
   (unless flag (setq flag "")
   (dc-docker-compose-run "" "up" flag)))
 
+
 ;; bring up your compose container
 (defun dc-docker-compose-ps (&optional flag)
   (interactive)
   (unless flag (setq flag ""))
   (dc-docker-compose-run "" "ps" flag))
+
+;; Docker IP Addresses
+(defun dc-docker-compose-network ()
+  (loop for name in (dc-docker-compose-names) collect 
+        (dc-docker-compose-run-return name "inspect -f" dc-str-addresses)))
 
 ;; shutdown your compose container
 (defun dc-docker-compose-down ()
@@ -206,13 +236,14 @@ Docker Compose Menu
 |-----------------------------------------------|--------|
 | _u_: Start Background | _U_: Start Foreground |
 | _l_: Logs             | _L_: Logs realtime    |
-| _p_: List Containers  |                       |
+| _p_: List Containers  | _n_: Addresses        |
 "
   ("U" (dc-docker-compose-up) "Startup")
   ("u" (dc-docker-compose-up "-d") "Startup Background")
   ("d" (dc-docker-compose-down) "Shutdown")
   ("l" (dc-docker-compose-logs) "Logs")
   ("p" (dc-docker-compose-ps) "Process list")
+  ("n" (dc-docker-compose-network) "Address list")
   ("L" (dc-docker-compose-logs "-f") "Logs Realtime")
   ("e" (dc-docker-compose-exec) "Run command")
   ("q" nil "Quit"))
