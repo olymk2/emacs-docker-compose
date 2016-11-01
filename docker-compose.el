@@ -71,63 +71,64 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
     (format "docker %s %s %s &" command name params)))
 
 ;;wrapper for docker shell command but return as string not backgrounded
-(defun dc-docker-run-return (name command params)
-  (message (format "dc-docker-run-return docker %s %s %s" command name params))
+(defun dc-docker-run-return (name command params &optional background)
+  (unless background (setq background "&"))
+  (message (format "dc-docker-run-return docker %s %s %s %s" command name params background))
   ;;(switch-to-buffer-other-window dc-buffer)
   ;;(special-mode)
-  (shell-command-to-string
-    (format "docker %s %s %s" command name params) dc-buffer))
+  (shell-command-to-string (format "docker %s %s %s %s" command name params background)))
 
 ;;TODO use default dir
-;; wrapper for compose shell commands backgrounded
-(defun dc-docker-compose-run (name command params)
-  (message (format "dc-docker-compose-run docker-compose %s %s %s &" command name params))
+;; wrapper for compose shell commands &optional backgrounded
+(defun dc-docker-compose-run (name command params &optional background)
+  (unless background (setq background ""))
+  (message (format "dc-docker-compose-run docker-compose %s %s %s %s" command name params background))
   (dc-compose-exists)
   (switch-to-buffer-other-window dc-buffer)
   ;;(with-current-buffer dc-buffer 
   ;;  (special-mode))
   (shell-command
-   (format "cd %s;docker-compose %s %s %s &" (dc-compose-root) command name params) dc-buffer))
+   (format "cd %s;docker-compose %s %s %s %s" (dc-compose-root) command name params background) dc-buffer))
 
 ;;TODO use default dir
 ;; wrapper for compose shell commands not backgrounded
-(defun dc-docker-compose-run-return (name command params)
-  (message (format "dc-docker-compose-run-return docker-compose %s %s %s" command name params))
+(defun dc-docker-compose-run-return (name command params &optional background)
+  (unless background (setq background ""))
+  (message (format "dc-docker-compose-run-return docker-compose %s %s %s %s" command name params background))
   (dc-compose-exists)
-  (switch-to-buffer-other-window dc-buffer)
-  (with-current-buffer dc-buffer 
-    (special-mode))
-  (shell-command
-   (format "cd %s;docker-compose %s %s %s" (dc-compose-root) command name params) dc-buffer))
+  ;;(switch-to-buffer-other-window dc-buffer)
+  ;;(with-current-buffer dc-buffer (special-mode))
+  (shell-command-to-string
+   (format "cd %s;docker-compose %s %s %s %s" (dc-compose-root) command name params background)))
 
 ;; bring up your compose container
 (defun dc-docker-compose-up (&optional flag)
   (interactive)
   (unless flag (setq flag ""))
-  (dc-docker-compose-run "" "up" flag))
+  (dc-docker-compose-run "" "up" flag "&"))
+
+;; shutdown your compose container
+(defun dc-docker-compose-down ()
+  (interactive)
+  (dc-docker-compose-run "down" "" "" "&"))
 
 ;; bring up your compose container
 (defun dc-docker-compose-logs (&optional flag)
   (interactive)
   (unless flag (setq flag "")
-  (dc-docker-compose-run "" "up" flag)))
-
+  (dc-docker-compose-run "" "up" flag "&")))
 
 ;; bring up your compose container
 (defun dc-docker-compose-ps (&optional flag)
   (interactive)
   (unless flag (setq flag ""))
-  (dc-docker-compose-run "" "ps" flag))
+  (dc-docker-compose-run "" "ps" flag "&"))
 
 ;; Docker IP Addresses
 (defun dc-docker-compose-network ()
   (loop for name in (dc-docker-compose-names) collect 
         (dc-docker-compose-run-return name "inspect -f" dc-str-addresses)))
 
-;; shutdown your compose container
-(defun dc-docker-compose-down ()
-  (interactive)
-  (dc-docker-compose-run "down" "" ""))
 
 ;; run a command on a docker container
 (defun dc-docker-exec (name &optional command)
@@ -137,6 +138,7 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
 
 ;; run a command on a compose container
 (defun dc-docker-compose-exec (name &optional command)
+  (defvar name)
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
   (unless command (setq command (read-string "Shell Command:")))
   (let ((bind_path (docker-compose-bound-project-path name)))
@@ -213,33 +215,11 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
   (dc-docker-compose-exec "mhackspace_uwsgi" "/var/www/vendor/bin/phpunit ")
 )
 
+(setq dc-test-docker-names-results
+"deadd2867f59
+90ab2818c5f2
+f68ce5a307d7")
 
-(ert-deftest pp-test-missing-docker-compose-errors ()
-  "Test compose container name lookup return values"
-  (should-error (dc-compose-exists)))
-
-(ert-deftest pp-test-docker-compose-container-names ()
-  "Test compose container name lookup return values"
-  (cl-letf (((symbol-function 'shell-command-to-string) (lambda (_) "")))
-    (should (equal (dc-docker-compose-names) nil))))
-
-
-(ert-deftest pp-test-docker-container-names ()
-  "Test container name lookup return values"
-  (cl-letf (((symbol-function 'shell-command-to-string) (lambda (_ _) "" "")))
-    (should (equal (dc-docker-names) nil))))
-
-
-(ert-deftest pp-test-find-docker-compose-path-in-current-folder ()
-  "Test container name lookup return values"
-  (find-file "./tests/test_project/child1/child2/child2_test_file.txt")
-  (should (equal (not(string-match "\\tests/test_project\/$" (dc-compose-root))) nil)))  
-
-
-(ert-deftest pp-test-find-docker-compose-path-in-child-folder ()
-  "Test container name lookup return values"
-  (find-file "./tests/test_project/test_file.txt")
-  (should (equal (not(string-match "\\tests/test_project\/$" (dc-compose-root))) nil)))
 
 (defhydra dc-launcher (:color blue :columns 4)
 "
