@@ -41,19 +41,8 @@
   (python-mode . pytest)))
 
 (setq dc-buffer "*Docker*")
-(defvar special-mode-map
-  (let ((map (make-sparse-keymap)))
-    (suppress-keymap map)
-    (define-key map "q" 'quit-window)
-    (define-key map " " 'scroll-up-command)
-    (define-key map [?\S-\ ] 'scroll-down-command)
-    (define-key map "\C-?" 'scroll-down-command)
-    (define-key map "?" 'describe-mode)
-    (define-key map "h" 'describe-mode)
-    (define-key map ">" 'end-of-buffer)
-    (define-key map "<" 'beginning-of-buffer)
-    (define-key map "g" 'revert-buffer)
-    map))
+(get-buffer-create dc-buffer)
+
 
 (setq dc-str-addresses "{{printf \"%.30s\" .Name}} @
 {{printf \"\%.20s\" .Config.Image}} @
@@ -64,10 +53,7 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
 
 ;; hunt for compose project root
 (defun dc-compose-root ()
-  (interactive)
-  (message "path")
   (let ((root-path (locate-dominating-file default-directory "docker-compose.yml")))
-    (message root-path)
     (if root-path
       root-path
       (message "Missing docker-compose.yml not found in directory tree"))))
@@ -76,7 +62,7 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
 (defun dc-compose-exists ()
   (if (file-exists-p (format "%sdocker-compose.yml" (dc-compose-root)))
     t
-    (error (format "Missing docker-compose.yml aborting current command %s" (dc-compose-root)))))
+    (error "Missing docker-compose.yml aborting current command")))
 
 ;;wrapper for docker shell commands backgrounded
 (defun dc-docker-run (name command params)
@@ -87,35 +73,32 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
 ;;wrapper for docker shell command but return as string not backgrounded
 (defun dc-docker-run-return (name command params)
   (message (format "dc-docker-run-return docker %s %s %s" command name params))
-  (switch-to-buffer-other-window dc-buffer)
-  (special-mode)
-  (message (dc-compose-root))
+  ;;(switch-to-buffer-other-window dc-buffer)
+  ;;(special-mode)
   (shell-command-to-string
-    (format "docker %s %s %s" command name params)))
+    (format "docker %s %s %s" command name params) dc-buffer))
 
 ;;TODO use default dir
 ;; wrapper for compose shell commands backgrounded
 (defun dc-docker-compose-run (name command params)
   (message (format "dc-docker-compose-run docker-compose %s %s %s &" command name params))
   (dc-compose-exists)
-  (get-buffer-create dc-buffer)
   (switch-to-buffer-other-window dc-buffer)
-  (cd-absolute (dc-compose-root))
-  (message (format "default path %s" default-directory))
+  ;;(with-current-buffer dc-buffer 
+  ;;  (special-mode))
   (shell-command
-    (format "docker-compose %s %s %s &" command name params) dc-buffer)
-    )
+   (format "cd %s;docker-compose %s %s %s &" (dc-compose-root) command name params) dc-buffer))
 
 ;;TODO use default dir
 ;; wrapper for compose shell commands not backgrounded
 (defun dc-docker-compose-run-return (name command params)
   (message (format "dc-docker-compose-run-return docker-compose %s %s %s" command name params))
   (dc-compose-exists)
-  (get-buffer-create dc-buffer)
   (switch-to-buffer-other-window dc-buffer)
-  (cd-absolute (dc-compose-root))
+  (with-current-buffer dc-buffer 
+    (special-mode))
   (shell-command
-    (format "docker-compose %s %s %s" command name params) dc-buffer))
+   (format "cd %s;docker-compose %s %s %s" (dc-compose-root) command name params) dc-buffer))
 
 ;; bring up your compose container
 (defun dc-docker-compose-up (&optional flag)
@@ -243,8 +226,20 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
 
 (ert-deftest pp-test-docker-container-names ()
   "Test container name lookup return values"
-  (cl-letf (((symbol-function 'shell-command-to-string) (lambda (_) "")))
+  (cl-letf (((symbol-function 'shell-command-to-string) (lambda (_ _) "" "")))
     (should (equal (dc-docker-names) nil))))
+
+
+(ert-deftest pp-test-find-docker-compose-path-in-current-folder ()
+  "Test container name lookup return values"
+  (find-file "./tests/test_project/child1/child2/child2_test_file.txt")
+  (should (equal (not(string-match "\\tests/test_project\/$" (dc-compose-root))) nil)))  
+
+
+(ert-deftest pp-test-find-docker-compose-path-in-child-folder ()
+  "Test container name lookup return values"
+  (find-file "./tests/test_project/test_file.txt")
+  (should (equal (not(string-match "\\tests/test_project\/$" (dc-compose-root))) nil)))
 
 (defhydra dc-launcher (:color blue :columns 4)
 "
