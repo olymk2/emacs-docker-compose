@@ -24,6 +24,14 @@
   (find-file "./tests/test_project/test_file.txt")
   (should (equal (not(string-match "\\tests/test_project\/$" (dc-compose-root))) nil)))
 
+
+(ert-deftest pp-test-docker-names-returns-when-no-container ()
+  "Test get container list"
+  (cl-letf
+      (((symbol-function 'dc-docker-run) (lambda (a b c) "deadd2867f59\n90ab2818c5f2a\nf68ce5a307d7"))
+       ((symbol-function 'dc-docker-run-return) (lambda (a b c) ""))
+       (should (equal (dc-docker-names) (list))))))
+
 (ert-deftest pp-test-docker-names-returns ()
   "Test get container list"
   (cl-letf
@@ -33,6 +41,13 @@
         (lambda (a b c) "/container2\n")
         (lambda (a b c) "/container3\n"))
        (should (equal (dc-docker-names) (list "container3" "container3" "container3" ))))))
+
+(ert-deftest pp-test-docker-compose-names-returns-when-no-container ()
+  "Test get composer container list, when compose file exists"
+  (find-file "./tests/test_project/test_file.txt")
+  (cl-letf
+    (((symbol-function 'dc-docker-compose-run-return) (lambda (a b c) "")))
+    (should (equal (dc-docker-compose-names) (list)))))
 
 (ert-deftest pp-test-docker-compose-names-returns ()
   "Test get composer container list, when compose file exists"

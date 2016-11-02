@@ -65,10 +65,9 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
     (error "Missing docker-compose.yml aborting current command")))
 
 ;;wrapper for docker shell commands backgrounded
-(defun dc-docker-run (name command params)
-  (message (format "dc-docker-run docker %s %s %s &" command name params))
-  (shell-command
-    (format "docker %s %s %s &" command name params)))
+(defun dc-docker-run (name command params background)
+  (message (format "dc-docker-run docker %s %s %s %s" command name params background))
+  (shell-command (format "docker %s %s %s %s" command name params background) dc-buffer))
 
 ;;wrapper for docker shell command but return as string not backgrounded
 (defun dc-docker-run-return (name command params &optional background)
@@ -127,14 +126,13 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
 ;; Docker IP Addresses
 (defun dc-docker-compose-network ()
   (loop for name in (dc-docker-compose-names) collect 
-        (dc-docker-compose-run-return name "inspect -f" dc-str-addresses)))
-
+        (dc-docker-compose-run name "inspect -f" dc-str-addresses)))
 
 ;; run a command on a docker container
 (defun dc-docker-exec (name &optional command)
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
   (unless command (setq command (read-string "Shell Command:")))
-  (dc-docker-run name "exec -it" command))
+  (dc-docker-run name "exec -it" command "&"))
 
 ;; run a command on a compose container
 (defun dc-docker-compose-exec (name &optional command)
@@ -142,7 +140,7 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
   (unless command (setq command (read-string "Shell Command:")))
   (let ((bind_path (docker-compose-bound-project-path name)))
-    (dc-docker-compose-run name "exec" command)))
+    (dc-docker-compose-run name "exec" command "&")))
 
 ;; return list of docker names
 (defun dc-docker-names ()
