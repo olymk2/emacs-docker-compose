@@ -16,7 +16,7 @@
 ;; (at your option) any later version.
 
 ;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; but WITHOUT ANY WARRANTY; without even the implid warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
 
@@ -42,17 +42,26 @@
 
 (setq dc-buffer "*Docker*")
 (get-buffer-create dc-buffer)
+;;(switch-to-buffer-other-window dc-buffer)
+;;(with-current-buffer dc-buffer (special-mode))
+
+(setq dc-str-addresses "inspect --format=\"{{printf \\\"%.30s\\\" .Name}} @ {{printf \\\"%.20s\\\" .Config.Image}} @ http://{{if ne \\\"\\\" .NetworkSettings.IPAddress}}{{ printf \\\"%.22s\\\" .NetworkSettings.IPAddress}}{{else}}{{range .NetworkSettings.Networks}}{{printf \\\"%.22s\\\" .IPAddress}}{{end}}{{end}} @ {{printf \\\"%.10s\\\" .State.Status}}\"")
+
+;;(setq dc-str-addresses "inspect --format=\"{{printf \\\"%%.30s\\\" .Name}}")
+ 
+(concatenate 'string "test " dc-str-addresses " string ")
+;;(message (concatenate 'string "test " dc-str-addresses " string "))
 
 
-(setq dc-str-addresses "{{printf \"%.30s\" .Name}} @
-{{printf \"\%.20s\" .Config.Image}} @
-http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSettings.IPAddress}}
-{{else}}
-{{range .NetworkSettings.Networks}}{{printf \"\%.22s\" .IPAddress}}{{end}}{{end}} @
-{{printf \"\%.10s\" .State.Status}}")
+;;(format "%s" dc-str-addresses)
+;; (message (format "inspect -f %s" dc-str-addresses))
 
+;;(message (format "inspect -f \"%s\"" dc-str-addresses))
 ;; hunt for compose project root
 (defun dc-compose-root ()
+  (message (format "dc-compose-root %s" default-directory))
+  (message (format "dc-compose-root %s" (file-name-directory buffer-file-name)))
+
   (let ((root-path (locate-dominating-file default-directory "docker-compose.yml")))
     (if root-path
       root-path
@@ -66,39 +75,41 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
 
 ;;wrapper for docker shell commands backgrounded
 (defun dc-docker-run (name command params background)
-  (message (format "dc-docker-run docker %s %s %s %s" command name params background))
-  (shell-command (format "docker %s %s %s %s" command name params background) dc-buffer))
+  (message "dc-docker-run")
+  (message name)
+  (message (concatenate 'string "dc-docker-run docker " command " " name " " params " " background))
+  (shell-command
+   (concatenate 'string "docker " command " " name " " params " " background)))
 
 ;;wrapper for docker shell command but return as string not backgrounded
 (defun dc-docker-run-return (name command params &optional background)
   (unless background (setq background "&"))
-  (message (format "dc-docker-run-return docker %s %s %s %s" command name params background))
+  (message (concatenate 'string "dc-docker-run-return docker" command " " name " " params " " background))
   ;;(switch-to-buffer-other-window dc-buffer)
   ;;(special-mode)
-  (shell-command-to-string (format "docker %s %s %s %s" command name params background)))
+  (shell-command-to-string
+   (concatenate 'string "docker " command " " name " " params " " background)))
 
 ;;TODO use default dir
 ;; wrapper for compose shell commands &optional backgrounded
 (defun dc-docker-compose-run (name command params &optional background)
   (unless background (setq background ""))
-  (message (format "dc-docker-compose-run docker-compose %s %s %s %s" command name params background))
+  (message (concatenate 'string "dc-docker-compose-run docker" command " " name " " params " " background))
   (dc-compose-exists)
-  (switch-to-buffer-other-window dc-buffer)
+  ;;(switch-to-buffer-other-window dc-buffer)
   ;;(with-current-buffer dc-buffer 
   ;;  (special-mode))
   (shell-command
-   (format "cd %s;docker-compose %s %s %s %s" (dc-compose-root) command name params background) dc-buffer))
+   (concatenate 'string "cd " (dc-compose-root) ";docker-compose " command " " name " " params " " background)))
 
 ;;TODO use default dir
 ;; wrapper for compose shell commands not backgrounded
 (defun dc-docker-compose-run-return (name command params &optional background)
   (unless background (setq background ""))
-  (message (format "dc-docker-compose-run-return docker-compose %s %s %s %s" command name params background))
+  (message (concatenate 'string "dc-docker-compose-run-return docker" command name params background))
   (dc-compose-exists)
-  ;;(switch-to-buffer-other-window dc-buffer)
-  ;;(with-current-buffer dc-buffer (special-mode))
   (shell-command-to-string
-   (format "cd %s;docker-compose %s %s %s %s" (dc-compose-root) command name params background)))
+   (concatenate 'string "cd " (dc-compose-root) ";docker-compose " command name params background)))
 
 ;; bring up your compose container
 (defun dc-docker-compose-up (&optional flag)
@@ -124,9 +135,19 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
   (dc-docker-compose-run "" "ps" flag "&"))
 
 ;; Docker IP Addresses
+(defun dc-docker-network-test ()
+  (interactive)
+  (dc-docker-run "gogs" dc-str-addresses "" "&"))
+
+;; Docker IP Addresses
+(defun dc-docker-network ()
+  (loop for name in (dc-docker-names) collect
+    (dc-docker-run name dc-str-addresses "" "&")))
+
+;; Docker IP Addresses
 (defun dc-docker-compose-network ()
   (loop for name in (dc-docker-compose-names) collect 
-        (dc-docker-compose-run name "inspect -f" dc-str-addresses)))
+    (dc-docker-run name dc-str-addresses "" "&")))
 
 ;; run a command on a docker container
 (defun dc-docker-exec (name &optional command)
@@ -136,8 +157,8 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
 
 ;; run a command on a compose container
 (defun dc-docker-compose-exec (name &optional command)
-  (defvar name)
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
+  ;;(defvar name)
   (unless command (setq command (read-string "Shell Command:")))
   (let ((bind_path (docker-compose-bound-project-path name)))
     (dc-docker-compose-run name "exec" command "&")))
@@ -213,12 +234,6 @@ http://{{if ne \"\" .NetworkSettings.IPAddress}}{{ printf \"\%.22s\" .NetworkSet
   (dc-docker-compose-exec "mhackspace_uwsgi" "/var/www/vendor/bin/phpunit ")
 )
 
-(setq dc-test-docker-names-results
-"deadd2867f59
-90ab2818c5f2
-f68ce5a307d7")
-
-
 (defhydra dc-launcher (:color blue :columns 4)
 "
 Docker Compose Menu
@@ -227,15 +242,18 @@ Docker Compose Menu
 | _u_: Start Background | _U_: Start Foreground |
 | _l_: Logs             | _L_: Logs realtime    |
 | _p_: List Containers  | _n_: Addresses        |
+| _s_: Select Container | _N_: Addresses        |
 "
   ("U" (dc-docker-compose-up) "Startup")
   ("u" (dc-docker-compose-up "-d") "Startup Background")
   ("d" (dc-docker-compose-down) "Shutdown")
   ("l" (dc-docker-compose-logs) "Logs")
   ("p" (dc-docker-compose-ps) "Process list")
-  ("n" (dc-docker-compose-network) "Address list")
+  ("n" (dc-docker-network) "Address list")
+  ("N" (dc-docker-compose-network) "Compose Address list")
   ("L" (dc-docker-compose-logs "-f") "Logs Realtime")
   ("e" (dc-docker-compose-exec) "Run command")
+  ("s" (dc-helm-select-container) "Select Container")
   ("q" nil "Quit"))
 
 (global-set-key (kbd "C-c d") 'dc-launcher/body)
