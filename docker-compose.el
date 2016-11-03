@@ -70,7 +70,7 @@
   (file-exists-p (format "%sdocker-compose.yml" (dc-compose-root))))
 
 (defun dc-compose-exists-check ()
-  (if (equal (dc-compose-exists) t)
+  (if (dc-compose-exists)
     t
     (error "Missing docker-compose.yml aborting current command")))
 
@@ -175,7 +175,7 @@
 (defun dc-docker-compose-names ()
   (interactive)
   (message "%s" (dc-compose-exists))
-  (if (equal (dc-compose-exists) t)
+  (if (dc-compose-exists)
     (split-string (dc-docker-compose-run-return "" "config --services" "") "\n" t)
     nil))
 
