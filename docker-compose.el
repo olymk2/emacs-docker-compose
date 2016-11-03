@@ -43,7 +43,7 @@
 (setq dc-buffer "*Docker*")
 (get-buffer-create dc-buffer)
 ;;(switch-to-buffer-other-window dc-buffer)
-;;(with-current-buffer dc-buffer (special-mode))
+(with-current-buffer dc-buffer (special-mode))
 
 (setq dc-str-addresses "inspect --format=\"{{printf \\\"%.30s\\\" .Name}} @ {{printf \\\"%.20s\\\" .Config.Image}} @ http://{{if ne \\\"\\\" .NetworkSettings.IPAddress}}{{ printf \\\"%.22s\\\" .NetworkSettings.IPAddress}}{{else}}{{range .NetworkSettings.Networks}}{{printf \\\"%.22s\\\" .IPAddress}}{{end}}{{end}} @ {{printf \\\"%.10s\\\" .State.Status}}\"")
 
@@ -59,32 +59,33 @@
 ;;(message (format "inspect -f \"%s\"" dc-str-addresses))
 ;; hunt for compose project root
 (defun dc-compose-root ()
-  (message (format "dc-compose-root %s" default-directory))
-  (message (format "dc-compose-root %s" (file-name-directory buffer-file-name)))
-
+  (message "%s" (format "dc-compose-root %s" default-directory))
   (let ((root-path (locate-dominating-file default-directory "docker-compose.yml")))
     (if root-path
       root-path
-      (message "Missing docker-compose.yml not found in directory tree"))))
+      "/")))
 
 ;; hunt for compose project root
 (defun dc-compose-exists ()
-  (if (file-exists-p (format "%sdocker-compose.yml" (dc-compose-root)))
+  (file-exists-p (format "%sdocker-compose.yml" (dc-compose-root))))
+
+(defun dc-compose-exists-check ()
+  (if (equal (dc-compose-exists) t)
     t
     (error "Missing docker-compose.yml aborting current command")))
 
 ;;wrapper for docker shell commands backgrounded
 (defun dc-docker-run (name command params background)
-  (message "dc-docker-run")
-  (message name)
-  (message (concatenate 'string "dc-docker-run docker " command " " name " " params " " background))
+  (message "%s" "dc-docker-run")
+  (message "%s" name)
+  (message "%s" (concatenate 'string "dc-docker-run docker " command " " name " " params " " background))
   (shell-command
    (concatenate 'string "docker " command " " name " " params " " background)))
 
 ;;wrapper for docker shell command but return as string not backgrounded
 (defun dc-docker-run-return (name command params &optional background)
   (unless background (setq background "&"))
-  (message (concatenate 'string "dc-docker-run-return docker" command " " name " " params " " background))
+  (message "%s" (concatenate 'string "dc-docker-run-return docker" command " " name " " params " " background))
   ;;(switch-to-buffer-other-window dc-buffer)
   ;;(special-mode)
   (shell-command-to-string
@@ -94,8 +95,8 @@
 ;; wrapper for compose shell commands &optional backgrounded
 (defun dc-docker-compose-run (name command params &optional background)
   (unless background (setq background ""))
-  (message (concatenate 'string "dc-docker-compose-run docker" command " " name " " params " " background))
-  (dc-compose-exists)
+  (message "%s" (concatenate 'string "dc-docker-compose-run docker" command " " name " " params " " background))
+  (dc-compose-exists-check)
   ;;(switch-to-buffer-other-window dc-buffer)
   ;;(with-current-buffer dc-buffer 
   ;;  (special-mode))
@@ -106,8 +107,8 @@
 ;; wrapper for compose shell commands not backgrounded
 (defun dc-docker-compose-run-return (name command params &optional background)
   (unless background (setq background ""))
-  (message (concatenate 'string "dc-docker-compose-run-return docker" command name params background))
-  (dc-compose-exists)
+  (message "%s" (concatenate 'string "dc-docker-compose-run-return docker" command name params background))
+  (dc-compose-exists-check)
   (shell-command-to-string
    (concatenate 'string "cd " (dc-compose-root) ";docker-compose " command name params background)))
 
@@ -122,7 +123,7 @@
   (interactive)
   (dc-docker-compose-run "down" "" "" "&"))
 
-;; bring up your compose container
+;; bring up your compose containewdr
 (defun dc-docker-compose-logs (&optional flag)
   (interactive)
   (unless flag (setq flag "")
@@ -133,7 +134,7 @@
   (interactive)
   (unless flag (setq flag ""))
   (dc-docker-compose-run "" "ps" flag "&"))
-
+ 
 ;; Docker IP Addresses
 (defun dc-docker-network-test ()
   (interactive)
@@ -173,11 +174,10 @@
 ;; return list of docker names
 (defun dc-docker-compose-names ()
   (interactive)
-  (let ((dotcomposefile (format "%sdocker-compose.yml" (dc-compose-root))))
-    (if (file-exists-p dotcomposefile)
-      (split-string (dc-docker-compose-run-return "" "config --services" "") "\n" t)
-      (message "Missing compose file @%s" dotcomposefile)
-      nil)))
+  (message "%s" (dc-compose-exists))
+  (if (equal (dc-compose-exists) t)
+    (split-string (dc-docker-compose-run-return "" "config --services" "") "\n" t)
+    nil))
 
 ;; give a container name, map the project path to the container path if possible
 (defun docker-compose-bound-project-path (container)

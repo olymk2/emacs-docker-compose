@@ -2,7 +2,7 @@
 
 (ert-deftest pp-test-missing-docker-compose-errors ()
   "Test compose container name lookup return values"
-  (should-error (dc-compose-exists)))
+  (should-error (dc-compose-exists-check)))
 
 (ert-deftest pp-test-docker-compose-container-names ()
   "Test compose container name lookup return values"
