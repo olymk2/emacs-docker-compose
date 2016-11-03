@@ -1,7 +1,6 @@
 pipeline:
   build:
     image: jare/spacemacs:latest
-    pull: true
     commands:
-      - emacs -batch -f (package-install hydra) -l ert -l hydra -l docker-compose.el -f ert-run-tests-batch-and-exit
-#/home/jare
+      - emacs -batch -l /drone/src/tests/.emacs.d/init.el -l hydra -l ert-docker-compose.el -f ert-run-tests-batch-and-exit
+

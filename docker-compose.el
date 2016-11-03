@@ -40,12 +40,15 @@
   (php-mode . phpunit)
   (python-mode . pytest)))
 
-(setq dc-buffer "*Docker*")
+(setq dc-buffer "*Docker Info*")
+(setq dc-buffer-shell "*Docker Shell*")
 (get-buffer-create dc-buffer)
+(get-buffer-create dc-buffer-shell)
 ;;(switch-to-buffer-other-window dc-buffer)
 (with-current-buffer dc-buffer (special-mode))
+;;(with-current-buffer dc-buffer-shell (shell-mode))
 
-(setq dc-str-addresses "inspect --format=\"{{printf \\\"%.30s\\\" .Name}} @ {{printf \\\"%.20s\\\" .Config.Image}} @ http://{{if ne \\\"\\\" .NetworkSettings.IPAddress}}{{ printf \\\"%.22s\\\" .NetworkSettings.IPAddress}}{{else}}{{range .NetworkSettings.Networks}}{{printf \\\"%.22s\\\" .IPAddress}}{{end}}{{end}} @ {{printf \\\"%.10s\\\" .State.Status}}\"")
+(setq dc-str-addresses "inspect --format=\"{{printf \\\"%.30s\\\" .Name}} @ {{printf \\\"%.20s\\\" .Config.Image}} @ http://{{if ne \\\"\\\" .NetworkSettings.IPAddress}}{{ printf \\\"%.22s\\\" .NetworkSettings.IPAddress}}{{else}}{{range .NetworkSettings.Networks}}{{printf \\\"%.22s\\\" .IPAddress}}{{end}}{{end}} @ {{printf \\\"%.10s\\\" .State.Status}}\" | column -t -s@ -c 80")
 
 ;;(setq dc-str-addresses "inspect --format=\"{{printf \\\"%%.30s\\\" .Name}}")
  
@@ -142,13 +145,14 @@
 
 ;; Docker IP Addresses
 (defun dc-docker-network ()
+  (with-current-buffer dc-buffer 
   (loop for name in (dc-docker-names) collect
-    (dc-docker-run name dc-str-addresses "" "&")))
+    (dc-docker-run-return name dc-str-addresses "" ""))))
 
 ;; Docker IP Addresses
 (defun dc-docker-compose-network ()
   (loop for name in (dc-docker-compose-names) collect 
-    (dc-docker-run name dc-str-addresses "" "&")))
+    (dc-docker-run-return name dc-str-addresses "" "")))
 
 ;; run a command on a docker container
 (defun dc-docker-exec (name &optional command)
@@ -202,8 +206,9 @@
   (setq helm-docker-containers
         '((name . "Docker Containers")
           (candidates . dc-docker-names)
-          (action . (lambda (candidate)
-                      (dc-docker-exec candidate)))))
+          (action . (("Run command inside container" . (lambda (candidate)
+                      (dc-docker-exec candidate)))
+                     ("Alternate command" . (lambda (candiadte) () ))))))
 
   ;; helm source for docker compose containers
   (setq helm-docker-compose-containers
@@ -256,7 +261,7 @@ Docker Compose Menu
   ("s" (dc-helm-select-container) "Select Container")
   ("q" nil "Quit"))
 
-(global-set-key (kbd "C-c d") 'dc-launcher/body)
-(evil-leader/set-key "d" 'dc-launcher/body)
+;;(global-set-key (kbd "C-c d") 'dc-launcher/body)
+;;(evil-leader/set-key "d" 'dc-launcher/body)
 ;;; docker-compose.el ends here
 ;;(provide 'docker-compose) 

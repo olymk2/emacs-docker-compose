@@ -21,3 +21,20 @@ Install docker compose plugin
        :features docker-compose
        :compile "docker-compose.el")
 #+END_SRC
+
+
+
+
+* Keybinding 
+
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-c d") 'dc-launcher/body)
+(evil-leader/set-key "d" 'dc-launcher/body)
+#+END_SRC
+
+
+* tests
+
+#+BEGIN_SRC elisp
+(message (dc-docker-names))
+#+END_SRC
