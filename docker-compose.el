@@ -35,7 +35,7 @@
 (require 'cl)
 (require 'hydra)
 
-
+(setq dc-shell-command "sh -c")
 (setq dc-test-commands '(
   (php-mode . phpunit)
   (python-mode . pytest)))
@@ -46,20 +46,10 @@
 (get-buffer-create dc-buffer-shell)
 ;;(switch-to-buffer-other-window dc-buffer)
 (with-current-buffer dc-buffer (special-mode))
-;;(with-current-buffer dc-buffer-shell (shell-mode))
+(with-current-buffer dc-buffer-shell (eshell-mode))
 
 (setq dc-str-addresses "inspect --format=\"{{printf \\\"%.30s\\\" .Name}} @ {{printf \\\"%.20s\\\" .Config.Image}} @ http://{{if ne \\\"\\\" .NetworkSettings.IPAddress}}{{ printf \\\"%.22s\\\" .NetworkSettings.IPAddress}}{{else}}{{range .NetworkSettings.Networks}}{{printf \\\"%.22s\\\" .IPAddress}}{{end}}{{end}} @ {{printf \\\"%.10s\\\" .State.Status}}\" | column -t -s@ -c 80")
 
-;;(setq dc-str-addresses "inspect --format=\"{{printf \\\"%%.30s\\\" .Name}}")
- 
-(concatenate 'string "test " dc-str-addresses " string ")
-;;(message (concatenate 'string "test " dc-str-addresses " string "))
-
-
-;;(format "%s" dc-str-addresses)
-;; (message (format "inspect -f %s" dc-str-addresses))
-
-;;(message (format "inspect -f \"%s\"" dc-str-addresses))
 ;; hunt for compose project root
 (defun dc-compose-root ()
   (message "%s" (format "dc-compose-root %s" default-directory))
@@ -73,14 +63,10 @@
   (file-exists-p (format "%sdocker-compose.yml" (dc-compose-root))))
 
 (defun dc-compose-exists-check ()
-  (if (dc-compose-exists)
-    t
-    (error "Missing docker-compose.yml aborting current command")))
+  (if (dc-compose-exists) t (error "Missing docker-compose.yml aborting current command")))
 
 ;;wrapper for docker shell commands backgrounded
 (defun dc-docker-run (name command params background)
-  (message "%s" "dc-docker-run")
-  (message "%s" name)
   (message "%s" (concatenate 'string "dc-docker-run docker " command " " name " " params " " background))
   (shell-command
    (concatenate 'string "docker " command " " name " " params " " background)))
@@ -100,9 +86,6 @@
   (unless background (setq background ""))
   (message "%s" (concatenate 'string "dc-docker-compose-run docker" command " " name " " params " " background))
   (dc-compose-exists-check)
-  ;;(switch-to-buffer-other-window dc-buffer)
-  ;;(with-current-buffer dc-buffer 
-  ;;  (special-mode))
   (shell-command
    (concatenate 'string "cd " (dc-compose-root) ";docker-compose " command " " name " " params " " background)))
 
@@ -115,19 +98,20 @@
   (shell-command-to-string
    (concatenate 'string "cd " (dc-compose-root) ";docker-compose " command name params background)))
 
-;; bring up your compose container
 (defun dc-docker-compose-up (&optional flag)
+  "Runs compose up, with optional -d parameter"
   (interactive)
   (unless flag (setq flag ""))
   (dc-docker-compose-run "" "up" flag "&"))
 
-;; shutdown your compose container
 (defun dc-docker-compose-down ()
+  "Runs compose down"
   (interactive)
   (dc-docker-compose-run "down" "" "" "&"))
 
 ;; bring up your compose containewdr
 (defun dc-docker-compose-logs (&optional flag)
+  "Runs docker compose logs against the current project"
   (interactive)
   (unless flag (setq flag "")
   (dc-docker-compose-run "" "up" flag "&")))

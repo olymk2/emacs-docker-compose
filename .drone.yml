@@ -1,6 +1,7 @@
 pipeline:
   build:
     image: jare/spacemacs:latest
+    volumes:
+      - ./tests/.emacs.d/:/root/emacs.d/
     commands:
       - emacs -batch -l /drone/src/tests/.emacs.d/init.el -l hydra -l ert-docker-compose.el -f ert-run-tests-batch-and-exit
-
