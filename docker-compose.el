@@ -30,7 +30,7 @@
 ;;; Code:
 
 ;;http://jakemccrary.com/blog/2013/08/10/emacs-capture-shell-command-output-in-temporary-buffer
-;;(start-process "docker-process" "* Docker *" "shell)
+;;(start-process "docker-process" "* Docker *" "shell) d
 
 (require 'cl)
 (require 'hydra)
@@ -39,6 +39,13 @@
 (setq dc-test-commands '(
   (php-mode . phpunit)
   (python-mode . pytest)))
+
+(setq dc-docker-cmd
+  (replace-regexp-in-string "\n$" ""
+    (shell-command-to-string "which docker")))
+(setq dc-docker-compose-cmd
+  (replace-regexp-in-string "\n$" ""
+    (shell-command-to-string "which docker-compose")))
 
 ;;(setq dc-buffer "*Docker Info*")
 (setq dc-buffer-shell (get-buffer-create "*Docker Shell*"))
@@ -72,18 +79,26 @@
 
 (defun dc-process (command &rest args)
   (let ((params
-         (list "dc-process" dc-buffer-name "/usr/bin/docker-compose" command)))
-  (setq params = (append params args))
+         (list "dc-process" dc-buffer-name dc-docker-compose-cmd command)))
+  ;;(message "%s" args)
+  ;;(if (eq args (list nil)) (setq params (append params args)))
+  (let ((default-directory (dc-compose-root)))
   (with-current-buffer dc-buffer
+    (message "%s" "dcprocess paths")
     (message "%s" params)
+    (message "%s" default-directory)
    ;; use apply to call function with list of params
   (set-process-sentinel
     (apply 'start-process params) 'dc-sentinel-gettext)
-   (special-mode))))
+   (special-mode)))))
 
 (defun dc-compose-root ()
   "Try and match project root to mounted volume inside container, return root if failure"
-  (let ((root-path (locate-dominating-file default-directory "docker-compose.yml")))
+  ;;(message "%s" (buffer-file-name))
+  ;;(message "%s" (or load-file-name (buffer-file-name)))
+  (message "%s" "dc-compose-root")
+  (message "%s" (file-name-directory buffer-file-name))
+  (let ((root-path (locate-dominating-file (file-name-directory buffer-file-name) "docker-compose.yml")))
     (message "%s" root-path)
     (if root-path
       root-path
@@ -132,8 +147,8 @@
 (defun dc-docker-compose-process (command &rest params)
   (interactive)
   (dc-compose-exists-check)
-  (let ((default-directory (dc-compose-root)))
-    (dc-process command params)))
+  ;;(let ((default-directory (dc-compose-root)))
+    (dc-process command params));;)
 
 ;; TODO use default dir
 ;; wrapper for compose shell commands &optional backgrounded
@@ -141,8 +156,9 @@
   (unless background (setq background ""))
   (message "%s" (concatenate 'string "dc-docker-compose-run docker " command " " name " " params " " background))
   (dc-compose-exists-check)
-  (let ((default-directory (dc-compose-root)))
-    (dc-process "" (concatenate 'string command " " name " " params))))
+  (dc-process "" (concatenate 'string command " " name " " params)))
+  ;;(let ((default-directory (dc-compose-root)))
+    ;;(dc-process "" (concatenate 'string command " " name " " params))))
     ;;(with-current-buffer dc-buffer 
       ;;(dc-process 
        ;;("/usr/bin/docker-compose" (concatenate 'string "command " " name " " params " )))))
