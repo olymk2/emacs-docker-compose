@@ -35,7 +35,7 @@
 (ert-deftest pp-test-docker-names-returns ()
   "Test get container list"
   (cl-letf
-      (((symbol-function 'dc-docker-run) (lambda (a b c) "deadd2867f59\n90ab2818c5f2a\nf68ce5a307d7"))
+      (((symbol-function 'dc-docker-run-return) (lambda (a b c) "deadd2867f59\n90ab2818c5f2a\nf68ce5a307d7"))
        ((symbol-function 'dc-docker-run-return)
         (lambda (a b c) "/container1\n")
         (lambda (a b c) "/container2\n")

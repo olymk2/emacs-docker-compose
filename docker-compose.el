@@ -29,9 +29,6 @@
 
 ;;; Code:
 
-;;http://jakemccrary.com/blog/2013/08/10/emacs-capture-shell-command-output-in-temporary-buffer
-;;(start-process "docker-process" "* Docker *" "shell) d
-
 (require 'cl)
 (require 'hydra)
 
@@ -77,27 +74,22 @@
 (defun dc-sentinel-gettext (process signal)
   (message "sentinal %s %s" process signal))
 
-(defun dc-process (command &rest args)
-  (let ((params
-         (list "dc-process" dc-buffer-name dc-docker-compose-cmd command)))
-  ;;(message "%s" args)
-  ;;(if (eq args (list nil)) (setq params (append params args)))
-  (let ((default-directory (dc-compose-root)))
-  (with-current-buffer dc-buffer
-    (message "%s" "dcprocess paths")
-    (message "%s" params)
-    (message "%s" default-directory)
-   ;; use apply to call function with list of params
-  (set-process-sentinel
-    (apply 'start-process params) 'dc-sentinel-gettext)
-   (special-mode)))))
+
+(defun dc-process (docker-cmd buffer-name command &optional args)
+  "Wrapper around start process, that connects to buffer and spawn a sentinel watcher"
+  (let ((params (list "dc-process" buffer-name docker-cmd command)))
+    (if args (setq params (append params args)))
+    (let ((default-directory (dc-compose-root)))
+      (message "%s" params)
+      ;; use apply to call function with list of params
+      (set-process-sentinel
+       (apply 'start-process params) 'dc-sentinel-gettext)))
+  (display-buffer buffer-name)
+  (special-mode))
+
 
 (defun dc-compose-root ()
   "Try and match project root to mounted volume inside container, return root if failure"
-  ;;(message "%s" (buffer-file-name))
-  ;;(message "%s" (or load-file-name (buffer-file-name)))
-  (message "%s" "dc-compose-root")
-  (message "%s" (file-name-directory buffer-file-name))
   (let ((root-path (locate-dominating-file (file-name-directory buffer-file-name) "docker-compose.yml")))
     (message "%s" root-path)
     (if root-path
@@ -128,11 +120,11 @@
 `params'     -- Extra params
 `background' -- pass \"&\" for background"
 
-  (message "%s" (concatenate 'string "dc-docker-run docker " command " " name " " params " " background))
-
-  (with-current-buffer dc-buffer 
-  (shell-command
-   (concatenate 'string "docker " command " " name " " params " " background) dc-buffer) (special-mode)))
+  ;;(message "%s" (concatenate 'string "dc-docker-run docker " command " " name " " params " " background))
+  (dc-process "exec" name "params"))
+  ;;(with-current-buffer dc-buffer 
+  ;;(shell-command
+  ;;(concatenate 'string "docker " command " " name " " params " " background) dc-buffer) (special-mode))
 
 ;;wrapper for docker shell command but return as string not backgrounded
 (defun dc-docker-run-return (name command params &optional background)
@@ -144,11 +136,18 @@
   (shell-command-to-string
    (concatenate 'string "docker " command " " name " " params " " background))))
 
+(defun dc-docker-shell (command &rest params)
+  (interactive)
+  (dc-process dc-docker-cmd dc-buffer-shell command params))
+
+(defun dc-docker-process (command &rest params)
+  (interactive)
+  (dc-process dc-docker-cmd dc-buffer-name command params))
+
 (defun dc-docker-compose-process (command &rest params)
   (interactive)
   (dc-compose-exists-check)
-  ;;(let ((default-directory (dc-compose-root)))
-    (dc-process command params));;)
+  (dc-process dc-docker-compose-cmd dc-buffer-name command params))
 
 ;; TODO use default dir
 ;; wrapper for compose shell commands &optional backgrounded
@@ -156,7 +155,7 @@
   (unless background (setq background ""))
   (message "%s" (concatenate 'string "dc-docker-compose-run docker " command " " name " " params " " background))
   (dc-compose-exists-check)
-  (dc-process "" (concatenate 'string command " " name " " params)))
+  (dc-process dc-docker-compose-cmd "" (concatenate 'string command " " name " " params)))
   ;;(let ((default-directory (dc-compose-root)))
     ;;(dc-process "" (concatenate 'string command " " name " " params))))
     ;;(with-current-buffer dc-buffer 
@@ -181,36 +180,39 @@
   "Starts a docker build, will prompt for a tag name
 `tagname'      -- Name to tag the build with"
   (interactive (list (read-string "Tag name:")))
-  (dc-docker-compose-run "" "build" (format "-t %s ." tagname) "&"))
+  ;;(dc-docker-compose-run "" "build" (format "-t %s ." tagname) "&"))
+  (dc-docker-compose-process "build" "-t" tagname "."))
 
 (defun dc-docker-compose-up (&optional flag)
   "Runs compose up, with optional -d parameter"
   (interactive)
   (unless flag (setq flag ""))
-  (dc-docker-compose-process "up"))
+  (dc-docker-compose-process "up" "-d"))
 
 (defun dc-docker-compose-down ()
   "Runs compose down"
   (interactive)
   (dc-docker-compose-process "down"))
 
-(defun dc-docker-logs (&optional flag)
-  "Runs docker logs against the current project"
+(defun dc-docker-logs (name &optional flag)
+  "Runs docker logs against a container"
   (interactive (list (read-string "Container name:")))
-  (unless flag (setq flag "") (dc-docker-run "" "logs" flag "&")))
+  (unless flag (setq flag "") 
+  (dc-docker-process "logs" name)))
 
 (defun dc-docker-compose-logs (&optional flag)
   "Runs docker compose logs against the current project"
   (interactive)
   (unless flag (setq flag "")
-  (dc-docker-compose-run "" "logs" flag "&")))
+  (dc-docker-compose-process "logs")))
 
 ;; bring up your compose container
 (defun dc-docker-compose-ps (&optional flag)
   (interactive)
   (unless flag (setq flag ""))
-  (with-current-buffer dc-buffer 
-  (dc-docker-compose-run "" "ps" flag "")))
+  ;;(with-current-buffer dc-buffer 
+  ;;(dc-docker-compose-run "" "ps" flag "")))
+  (dc-docker-compose-process "logs"))
  
 ;; Docker IP Addresses
 (defun dc-docker-network-test ()
@@ -232,7 +234,9 @@
 (defun dc-docker-exec (name &optional command)
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
   (unless command (setq command (read-string "Shell Command:")))
-  (dc-docker-run name "exec -it" command "&"))
+  ;;(dc-docker-run name "exec -it" command "&"))
+  (dc-docker-shell "exec" "-it" name command)) 
+
 
 ;; run a command on a compose container
 (defun dc-docker-compose-exec (name &optional command)
