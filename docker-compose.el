@@ -75,7 +75,7 @@
   (message "sentinal %s %s" process signal))
 
 
-(defun dc-process (docker-cmd buffer-name command &optional args)
+(defun dc-process (buffer-name docker-cmd command &optional args)
   "Wrapper around start process, that connects to buffer and spawn a sentinel watcher"
   (let ((params (list "dc-process" buffer-name docker-cmd command)))
     (if args (setq params (append params args)))
@@ -84,8 +84,9 @@
       ;; use apply to call function with list of params
       (set-process-sentinel
        (apply 'start-process params) 'dc-sentinel-gettext)))
+  (message "switching buffer to %s" buffer-name)
   (display-buffer buffer-name)
-  (special-mode))
+  (with-current-buffer buffer-name (special-mode)))
 
 
 (defun dc-compose-root ()
@@ -138,16 +139,16 @@
 
 (defun dc-docker-shell (command &rest params)
   (interactive)
-  (dc-process dc-docker-cmd dc-buffer-shell command params))
+  (dc-process dc-buffer-shell-name dc-docker-cmd command params))
 
 (defun dc-docker-process (command &rest params)
   (interactive)
-  (dc-process dc-docker-cmd dc-buffer-name command params))
+  (dc-process dc-buffer-name dc-docker-cmd command params))
 
 (defun dc-docker-compose-process (command &rest params)
   (interactive)
   (dc-compose-exists-check)
-  (dc-process dc-docker-compose-cmd dc-buffer-name command params))
+  (dc-process dc-buffer-name dc-docker-compose-cmd command params))
 
 ;; TODO use default dir
 ;; wrapper for compose shell commands &optional backgrounded
@@ -155,7 +156,7 @@
   (unless background (setq background ""))
   (message "%s" (concatenate 'string "dc-docker-compose-run docker " command " " name " " params " " background))
   (dc-compose-exists-check)
-  (dc-process dc-docker-compose-cmd "" (concatenate 'string command " " name " " params)))
+  (dc-process dc-buffer-shell-name dc-docker-compose-cmd "" (concatenate 'string command " " name " " params)))
   ;;(let ((default-directory (dc-compose-root)))
     ;;(dc-process "" (concatenate 'string command " " name " " params))))
     ;;(with-current-buffer dc-buffer 
@@ -204,7 +205,7 @@
   "Runs docker compose logs against the current project"
   (interactive)
   (unless flag (setq flag "")
-  (dc-docker-compose-process "logs")))
+    (dc-docker-compose-process "logs" "--no-color")))
 
 ;; bring up your compose container
 (defun dc-docker-compose-ps (&optional flag)
@@ -318,13 +319,13 @@
 )
 
 (defhydra dc-launcher (:color blue :columns 4)
-"
+  "
 Docker Compose Menu
 | Docker Compose                                | Docker               |
 |-----------------------------------------------|----------------------|
 | _u_: Up Background    | _U_: Up Foreground    | _b_: Build Container |
-| _l_: Logs             | _t_: Tailed logs      | _l_: Logs            |
-| _s_: Select Container | _p_: List Containers  | _n_: Info            
+| _l_: Logs             | _t_: Tailed logs      | _L_: Logs            |
+| _s_: Select Container | _p_: List Containers  | _n_: Info       |
 | _p_: List Containers  | _N_: Info             |
 "
 
@@ -332,14 +333,14 @@ Docker Compose Menu
   ("U" (dc-docker-compose-up) "Startup")
   ("u" (dc-docker-compose-up "-d") "Startup Background")
   ("d" (dc-docker-compose-down) "Shutdown" :color red)
-  ("L" (dc-docker-compose-logs) "Logs")
+  ("l" (dc-docker-compose-logs) "Logs")
   ("t" (dc-docker-compose-logs) "Logs")
-  ("l" (dc-docker-logs) "Logs")
+  ("L" (dc-docker-logs) "Logs")
   ("p" (dc-docker-compose-ps) "Process list")
   ("n" (dc-docker-network) "Address list")
   ("b" (dc-docker-build) "Build container")
   ("N" (dc-docker-compose-network) "Compose Address list")
-  ("L" (dc-docker-compose-logs "-f") "Logs Realtime")
+  ("f" (dc-docker-compose-logs "-f") "Logs Realtime")
   ("e" (dc-docker-compose-exec) "Run command")
   ("s" (dc-helm-select-container) "Select Container")
   ("q" nil "Quit"))
