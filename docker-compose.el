@@ -184,6 +184,11 @@
   ;;(dc-docker-compose-run "" "build" (format "-t %s ." tagname) "&"))
   (dc-docker-compose-process "build" "-t" tagname "."))
 
+(defun dc-docker-compose-build ()
+  "Build your compose project"
+  (interactive)
+  (dc-docker-compose-process "build" "--no-color"))
+
 (defun dc-docker-compose-up (&optional flag)
   "Runs compose up, with optional -d parameter"
   (interactive)
@@ -323,10 +328,11 @@
 Docker Compose Menu
 | Docker Compose                                | Docker               |
 |-----------------------------------------------|----------------------|
-| _u_: Up Background    | _U_: Up Foreground    | _b_: Build Container |
+| _u_: Up Background    | _U_: Up Foreground    | _B_: Build Container |
 | _l_: Logs             | _t_: Tailed logs      | _L_: Logs            |
 | _s_: Select Container | _p_: List Containers  | _n_: Info       |
 | _p_: List Containers  | _N_: Info             |
+| _b_: Build Containers | 
 "
 
   ("\\" dc-launcher/body "back")
@@ -335,13 +341,14 @@ Docker Compose Menu
   ("d" (dc-docker-compose-down) "Shutdown" :color red)
   ("l" (dc-docker-compose-logs) "Logs")
   ("t" (dc-docker-compose-logs) "Logs")
-  ("L" (dc-docker-logs) "Logs")
-  ("p" (dc-docker-compose-ps) "Process list")
-  ("n" (dc-docker-network) "Address list")
-  ("b" (dc-docker-build) "Build container")
+  ("b" (dc-docker-compose-build) "Build container")
   ("N" (dc-docker-compose-network) "Compose Address list")
   ("f" (dc-docker-compose-logs "-f") "Logs Realtime")
   ("e" (dc-docker-compose-exec) "Run command")
+  ("L" (dc-docker-logs) "Logs")
+  ("p" (dc-docker-compose-ps) "Process list")
+  ("n" (dc-docker-network) "Address list")
+  ("B" (dc-docker-build) "Build container")
   ("s" (dc-helm-select-container) "Select Container")
   ("q" nil "Quit"))
 
