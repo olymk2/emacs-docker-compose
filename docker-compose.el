@@ -352,5 +352,37 @@ Docker Compose Menu
   ("s" (dc-helm-select-container) "Select Container")
   ("q" nil "Quit"))
 
+
+  ;;;###autoload (autoload 'drone-options-popup "magit" nil t)
+(magit-define-popup docker-build-popup
+  "Show popup buffer featuring tagging commands."
+  'magit-commands
+  :man-page "drone"
+  :options '((?f "Select file" "--file"))
+  :switches '((?t "No cache" "--no-cache"))
+  :actions  '((?d "build" dc-docker-build))
+  :actions  '((?d "build compose" dc-docker-compose-build))
+  :default-action 'dc-docker-build)
+
+  ;;;###autoload (autoload 'drone-options-popup "magit" nil t)
+(magit-define-popup docker-run-popup
+  "Show popup buffer featuring tagging commands."
+  'magit-commands
+  :man-page "drone"
+  :options '((?f "Select file" "--file"))
+  :switches '((?t "Remove" "--rm"))
+  :actions  '((?d "run" dc-docker-exec))
+  :actions  '((?c "run compose" dc-docker-compose-exec))
+  :default-action 'drone-exec)
+
+
+;;;###autoload
+(defun docker-build-exec (&optional args)
+  (interactive (list (drone-exec-arguments)))
+  (let ((default-directory (drone-root)))
+    (compilation-start (format "drone exec %s" (mapconcat 'identity args " ")))))
+
+
+
 (provide 'docker-compose) 
 ;;; docker-compose.el ends here
