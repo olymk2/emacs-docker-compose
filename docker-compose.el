@@ -47,6 +47,7 @@
 ;;(setq dc-buffer "*Docker Info*")
 (setq dc-buffer-shell (get-buffer-create "*Docker Shell*"))
 (setq dc-buffer-name "*Docker Info*")
+(setq dc-buffer-shell-name "*Docker Shell*")
 (setq dc-buffer (get-buffer-create "*Docker Info*"))
 ;;(get-buffer-create dc-buffer)
 ;;(get-buffer-create dc-buffer-shell)
@@ -303,6 +304,18 @@
 
   (helm :sources '(helm-docker-compose-containers helm-docker-containers) :buffer "*helm container*"))
 
+(defun dc-phpunit-get-test-name ()
+  (interactive)
+  (re-search-backward "function ")
+  (forward-word)
+  (forward-char)
+  (thing-at-point 'word))
+
+(defun dc-get-current-test-file ()
+  (interactive)
+  (file-relative-name buffer-file-name
+                      (locate-dominating-file buffer-file-name "docker-compose.yml")))
+
 (defun dc-run-test (function_name)
   (interactive)
   (message "%s" function_name)
@@ -318,10 +331,15 @@
   (dc-docker-compose-exec "mhackspace_uwsgi" "pytest")
 )
 
-(defun dc-php-test ()
+;; Assumes you enter into your project root and that phpunit exists in the vendor folder
+(defun dc-php-test (container_name)
+  (interactive (list (read-string "Container name:")))
   ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
-  (dc-docker-compose-exec "mhackspace_uwsgi" "/var/www/vendor/bin/phpunit ")
-)
+  (message "docker-compose exec -it ims sh -c \"./vendor/bin/phpunit --filter=%s ./%s\"" (dc-phpunit-get-test-name) (dc-get-current-test-file))
+  (dc-docker-compose-exec "ims"
+                          (format
+                           "sh -c \"./vendor/bin/phpunit --filter=%s ./%s\""
+                           (dc-phpunit-get-test-name) (dc-get-current-test-file))))
 
 (defhydra dc-launcher (:color blue :columns 4)
   "
