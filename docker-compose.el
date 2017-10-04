@@ -62,7 +62,7 @@
 (setq dc-str-addresses "inspect --format=\"{{printf \\\"%.30s\\\" .Name}} @ {{printf \\\"%.20s\\\" .Config.Image}} @ http://{{if ne \\\"\\\" .NetworkSettings.IPAddress}}{{ printf \\\"%.22s\\\" .NetworkSettings.IPAddress}}{{else}}{{range .NetworkSettings.Networks}}{{printf \\\"%.22s\\\" .IPAddress}}{{end}}{{end}} @ {{printf \\\"%.1emaresult of format as parametercs toggle debug on error jump to file0s\\\" .State.Status}}\" | column -t -s@ -c 80")
 
 (defun dc-preflight-checks ()
-  "Check if docker is availble on the system, might as well bail if its not"
+  "Check if docker is availble on the syststring and function returnem, might as well bail if its not"
   (shell-command "which docker"))
 
 (defun dc-docker-root ()
@@ -81,7 +81,7 @@
   (let ((params (list "dc-process" buffer-name docker-cmd command)))
     (if args (setq params (append params args)))
     (let ((default-directory (dc-compose-root)))
-      (message "%s" (concatenate 'string "dc-process" " " params))
+      (message "dc-process %s" params)
       ;; use apply to call function with list of params
       (set-process-sentinel
        (apply 'start-process params) 'dc-sentinel-gettext)))
@@ -148,17 +148,23 @@
 
 (defun dc-docker-compose-process (command &rest params)
   (interactive)
+
+  (message "%s" "dc-docker-compose-process ")
+  (message "%s" command)
+  (message "%s" params)
   (dc-compose-exists-check)
-  (message "%s" (concatenate 'string "dc-docker-compose-process " command " " params))
+  (message "%s" (concat "dc-docker-compose-process " command " " params))
   (dc-process dc-buffer-name dc-docker-compose-cmd command params))
 
 ;; TODO use default dir
 ;; wrapper for compose shell commands &optional backgrounded
-(defun dc-docker-compose-run (name command params &optional background)
-  (unless background (setq background ""))
-  (message "%s" (concatenate 'string "dc-docker-compose-run docker " command " " name " " params " " background))
+(defun dc-docker-compose-run (container_name docker_cmd params &optional background)
+  (unless background (setq background " "))
+
+  (let ((cmd (concat container_name " " params)))
+  (message "%s" (concat "dc-docker-compose-run " dc-docker-compose-cmd " " docker_cmd " " container_name " " params " " background))
   (dc-compose-exists-check)
-  (dc-process dc-buffer-shell-name dc-docker-compose-cmd "" (concatenate 'string command " " name " " params)))
+  (dc-docker-compose-process docker_cmd cmd)))
   ;;(let ((default-directory (dc-compose-root)))
     ;;(dc-process "" (concatenate 'string command " " name " " params))))
     ;;(with-current-buffer dc-buffer 
@@ -252,7 +258,7 @@
   ;;(defvar name)
   (unless command (setq command (read-string "Shell Command:")))
   (let ((bind_path (docker-compose-bound-project-path name)))
-    (dc-docker-compose-run "exec" name command "&")))
+    (dc-docker-compose-run name "exec" command "&")))
 
 ;; return list of docker names
 (defun dc-docker-names ()
@@ -346,11 +352,9 @@
 ;; Assumes you enter into your project root and that phpunit exists in the vendor folder
 (defun dc-php-test (container_name)
   (interactive (list (read-string "Container name:")))
-  (let ((cmd (concatenate 'string "sh -c \"./vendor/bin/phpunit --filter=" (dc-phpunit-get-test-name) "./" (dc-get-current-test-file) "\"")))
-  ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
-  (message "docker-compose exec -it ims sh -c \"./vendor/bin/phpunit --filter=%s ./%s\"" (dc-phpunit-get-test-name) (dc-get-current-test-file))
-  (dc-docker-compose-exec container_name cmd
-                          )))
+  (let ((cmd (concat "sh -c \"./vendor/bin/phpunit --filter=" (dc-phpunit-get-test-name) " ./" (dc-get-current-test-file) "\"")))
+    (message "%s %s" container_name cmd)
+    (dc-docker-compose-exec container_name cmd)))
 
 (defhydra dc-launcher (:color blue :columns 4)
   "
