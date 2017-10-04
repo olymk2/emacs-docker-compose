@@ -59,7 +59,7 @@
 
 ;;(setq major-mode 'special-mode)
 ;;(set-buffer-major-mode dc-buffer)
-(setq dc-str-addresses "inspect --format=\"{{printf \\\"%.30s\\\" .Name}} @ {{printf \\\"%.20s\\\" .Config.Image}} @ http://{{if ne \\\"\\\" .NetworkSettings.IPAddress}}{{ printf \\\"%.22s\\\" .NetworkSettings.IPAddress}}{{else}}{{range .NetworkSettings.Networks}}{{printf \\\"%.22s\\\" .IPAddress}}{{end}}{{end}} @ {{printf \\\"%.10s\\\" .State.Status}}\" | column -t -s@ -c 80")
+(setq dc-str-addresses "inspect --format=\"{{printf \\\"%.30s\\\" .Name}} @ {{printf \\\"%.20s\\\" .Config.Image}} @ http://{{if ne \\\"\\\" .NetworkSettings.IPAddress}}{{ printf \\\"%.22s\\\" .NetworkSettings.IPAddress}}{{else}}{{range .NetworkSettings.Networks}}{{printf \\\"%.22s\\\" .IPAddress}}{{end}}{{end}} @ {{printf \\\"%.1emaresult of format as parametercs toggle debug on error jump to file0s\\\" .State.Status}}\" | column -t -s@ -c 80")
 
 (defun dc-preflight-checks ()
   "Check if docker is availble on the system, might as well bail if its not"
@@ -81,7 +81,7 @@
   (let ((params (list "dc-process" buffer-name docker-cmd command)))
     (if args (setq params (append params args)))
     (let ((default-directory (dc-compose-root)))
-      (message "%s" params)
+      (message "%s" (concatenate 'string "dc-process" " " params))
       ;; use apply to call function with list of params
       (set-process-sentinel
        (apply 'start-process params) 'dc-sentinel-gettext)))
@@ -149,6 +149,7 @@
 (defun dc-docker-compose-process (command &rest params)
   (interactive)
   (dc-compose-exists-check)
+  (message "%s" (concatenate 'string "dc-docker-compose-process " command " " params))
   (dc-process dc-buffer-name dc-docker-compose-cmd command params))
 
 ;; TODO use default dir
@@ -251,7 +252,7 @@
   ;;(defvar name)
   (unless command (setq command (read-string "Shell Command:")))
   (let ((bind_path (docker-compose-bound-project-path name)))
-    (dc-docker-compose-run name "exec" command "&")))
+    (dc-docker-compose-run "exec" name command "&")))
 
 ;; return list of docker names
 (defun dc-docker-names ()
@@ -304,6 +305,14 @@
 
   (helm :sources '(helm-docker-compose-containers helm-docker-containers) :buffer "*helm container*"))
 
+
+(defun dc-python-get-test-name ()
+  (interactive)
+  (re-search-backward "def ")
+  (forward-word)
+  (forward-char)
+  (thing-at-point 'word))
+
 (defun dc-phpunit-get-test-name ()
   (interactive)
   (re-search-backward "function ")
@@ -327,19 +336,21 @@
 )
 
 (defun dc-python-test ()
+  (interactive (list (read-string "Container name:")))
   ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
-  (dc-docker-compose-exec "mhackspace_uwsgi" "pytest")
-)
+  (message "docker-compose exec -it hackdev_django_1 sh -c \"./vendor/bin/phpunit --filter=%s ./%s\"" (dc-python-get-test-name) (dc-get-current-test-file))
+  (dc-docker-compose-exec "hackdev_django_1"
+                          (format "%s" (concatenate 'string "sh -c \"./vendor/bin/phpunit --filter=" (dc-python-get-test-name) "./" (dc-get-current-test-file) "\""))))
+  ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
 
 ;; Assumes you enter into your project root and that phpunit exists in the vendor folder
 (defun dc-php-test (container_name)
   (interactive (list (read-string "Container name:")))
+  (let ((cmd (concatenate 'string "sh -c \"./vendor/bin/phpunit --filter=" (dc-phpunit-get-test-name) "./" (dc-get-current-test-file) "\"")))
   ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
   (message "docker-compose exec -it ims sh -c \"./vendor/bin/phpunit --filter=%s ./%s\"" (dc-phpunit-get-test-name) (dc-get-current-test-file))
-  (dc-docker-compose-exec "ims"
-                          (format
-                           "sh -c \"./vendor/bin/phpunit --filter=%s ./%s\""
-                           (dc-phpunit-get-test-name) (dc-get-current-test-file))))
+  (dc-docker-compose-exec container_name cmd
+                          )))
 
 (defhydra dc-launcher (:color blue :columns 4)
   "

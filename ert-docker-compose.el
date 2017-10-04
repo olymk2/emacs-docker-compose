@@ -56,3 +56,9 @@
        (((symbol-function 'dc-docker-compose-run-return)
         (lambda (a b c) "container1\ncontainer2\ncontainer3\n")))
        (should (equal (dc-docker-compose-names) (list "container1" "container2" "container3" )))))
+
+
+
+(ert-deftest pp-test-docker-compose-phptest-command ()
+  (((symbol-function 'dc-process) (lambda (a b c) "deadd2867f59\n90ab2818c5f2a\nf68ce5a307d7"))
+dc-process
