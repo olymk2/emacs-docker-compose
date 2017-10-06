@@ -17,31 +17,54 @@ You will need drone-cli to run these locally.
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
-(dc-docker-compose-process "exec" "ims ls -la")
+(dc-docker-compose-process "exec" "ims" "ls" "-la")
 #+END_SRC
 
+#+RESULTS:
+
 #+BEGIN_SRC emacs-lisp
-
-  ;; (defun dc-process (buffer-name docker-cmd command &rest args)
-  ;;   "Wrapper around start process, that connects to buffer and spawn a sentinel watcher"
-  ;;   (let ((params 
-  ;;       (list "dc-process" buffer-name docker-cmd command)))
-  ;;     ;; Append extra args
-  ;;     (if args (setq params (append params args)))
-  ;;     (let ((default-directory (dc-compose-root)))
-  ;;       (message "dc-process %s" params)
-  ;;       ;; use apply to call function with list of params
-  ;;       (set-process-sentinel
-  ;;        (apply 'start-process params) 'dc-sentinel-gettext)))
-  ;;   (message "switching buffer to %s" buffer-name)
-  ;;   (display-buffer buffer-name)
-  ;;   (with-current-buffer buffer-name (special-mode)))
-
-
   (dc-process "*testBuffer*" "docker" "exec" "-it" "nginx" "ls" "-la")
 #+END_SRC
 
 #+RESULTS:
+
+#+BEGIN_SRC emacs-lisp
+    (dc-docker-exec "ims" "sh" "-c" "./vendor/bin/phpunit ./tests/phpunit")
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  ;; (load-file "dc-core.el")
+  (require 'dc-core)
+  (load-file "~/.emacs/dc/dc-docker.el")
+  (load-file "~/.emacs/dc/dc-docker-compose.el")
+  (load-file "~/.emacs/dc/dc-tests.el")
+  (load-file "~/.emacs/dc/dc-popups.el")
+#+END_SRC
+
+#+RESULTS:
+: dc-core
+
+#+BEGIN_SRC emacs-lisp
+  ;; (load-file "dc-core.el")
+  (load "dc-core")
+  (load-file "~/.emacs/dc/dc-docker.el")
+  (load-file "~/.emacs/dc/dc-docker-compose.el")
+  (load-file "~/.emacs/dc/dc-tests.el")
+  (load-file "~/.emacs/dc/dc-popups.el")
+#+END_SRC
+
+
+#+BEGIN_SRC emacs-lisp
+  (load-file "~/.emacs/dc/dc-popups.el")
+#+END_SRC
+
+#+RESULTS:
+: t
+
+#+BEGIN_SRC emacs-lisp
+  ;; (load-file "dc-core.el")
+  (load-directory "~/.emacs/dc")
+#+END_SRC
 
 #+BEGIN_SRC emacs-lisp
 (append (list "3" "4") (list((list "1" "2")))
@@ -96,3 +119,11 @@ You will need drone-cli to run these locally.
 #+RESULTS:
 : #<process dc-process>
 
+
+** docker methods
+*** Pull image
+#+BEGIN_SRC emacs-lisp
+(dc-docker-pull "postgres")
+#+END_SRC
+
+#+RESULTS:
