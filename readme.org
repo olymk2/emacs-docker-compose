@@ -1,8 +1,8 @@
-# emacs-docker-compose
-Tools for working with docker-compose locally in development
+#+TITLE: Emacs docker / docker compose plugin using magit-popups
+
+Tools for working with docker and docker-compose locally 
 
 ![Container Selector](/preview.gif?raw=true "Helm container selection")
-
 
 Contributing
 ==
@@ -10,7 +10,48 @@ Contributing
 Consider putting this pre commit hook to run the tests before placing a PR.
 You will need drone-cli to run these locally.
 
-    ln -s .git_precommit.sh .git/hooks/pre-commit
+** Emacs config / Extending 
+Add your own testing command, or add extra functionality to any popup
+#+BEGIN_SRC emacs-lisp
+(magit-define-popup-action 'docker-tests-popup ?w "testing" (dc-call-compose-ps))
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'load-path "~/.emacs/dc/")
+  (load "dc-popups")
+#+END_SRC
+
+#+RESULTS:
+: t
+
+Set spacemacs launcher keys
+#+BEGIN_SRC emacs-lisp
+      (evil-leader/set-key "d" 'dc-main-docker-compose-popup)
+      (evil-leader/set-key "D" 'dc-main-docker-popup)
+#+END_SRC
+
+#+RESULTS:
+
+** Compose functions
+#+BEGIN_SRC emacs-lisp
+(dc-compose-names)
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC emacs-lisp
+(dc-docker-run-return "" "config" "--services" "")
+#+END_SRC
+
+** Docker functions
+#+BEGIN_SRC emacs-lisp
+(dc-docker-names)
+#+END_SRC
+
+#+RESULTS:
+| ims_container | ims_api_container | xe_container | agexus | agexuk | isis | nginx | goofy_hawking | affectionate_snyder | gerbil | gerbil_container | wiremock_container | agexuk_container | isis_container | selenium-hub | agexus_container | bmisapi_container | is_fs_volumes |
+
+** Handy
 
 #+BEGIN_SRC emacs-lisp
 (dc-docker-compose-process "exec" "ims sh -c \"./vendor/bin/phpunit --filter=testCanBeCreatedFromValidEmailAddress ./test_php.php\"")
@@ -27,6 +68,70 @@ You will need drone-cli to run these locally.
 #+END_SRC
 
 #+RESULTS:
+
+#+BEGIN_SRC emacs-lisp
+(search "--file" "--file dev.yml --test")
+#+END_SRC
+
+#+RESULTS:
+: 0
+
+#+BEGIN_SRC emacs-lisp
+(defun match-param-value (param args)
+  (string-match (format "%s%s%s"  "\\(" param "\\)\\([0-9A-z.]+\\)") args)
+  (match-string 2 args)
+)
+
+(defun fetch-docker-filename (args)
+  (let ((fname (match-param-value "--file" args)))
+  (unless fname (setq fname "docker-compose.yml"))
+  fname))
+
+;;(match-param-value "--file" "--predicate-test --filedev.yml --test")
+(fetch-docker-filename "--predicate-test --filedev2.yml --test")
+#+END_SRC
+
+#+RESULTS:
+: dev2.yml
+
+
+
+#+BEGIN_SRC emacs-lisp
+  (string-match "\\(--file\\)\\([A-z.]+\\)" "--filedev.yml --test")
+  (match-string 2 "-i --no-cache --filedev.yml --test")
+  ;
+                                          ; (string-match "--file" "--filedev.yml --test")
+#+END_SRC
+
+#+RESULTS:
+: dev.yml
+
+
+#+BEGIN_SRC emacs-lisp
+  (string-match "\\(--file+?\\)[A-z.]+" "--filedev.yml --test")
+  (match-string 0 "--filedev.yml --test")
+  ;
+                                          ; (string-match "--file" "--filedev.yml --test")
+#+END_SRC
+
+#+RESULTS:
+: --filedev.yml
+
+
+#+BEGIN_SRC emacs-lisp
+  (search-forward "--file" "a--filedev.yml --test")
+  ;; (string-match "--file" "--filedev.yml --test")
+#+END_SRC
+
+
+#+BEGIN_SRC emacs-lisp
+  (string-match "(?<=\file\s)" "a--filedev.yml --test")
+  (list ( match-beginning 0) ( match-end 0)) 
+  ;; (string-match "--file" "--filedev.yml --test")
+#+END_SRC
+
+#+RESULTS:
+| 0 | 17 |
 
 #+BEGIN_SRC emacs-lisp
     (dc-docker-exec "ims" "sh" "-c" "./vendor/bin/phpunit ./tests/phpunit")
@@ -46,12 +151,16 @@ You will need drone-cli to run these locally.
 
 #+BEGIN_SRC emacs-lisp
   ;; (load-file "dc-core.el")
-  (load "dc-core")
+  (load-file "~/.emacs/dc/dc-core.el")
   (load-file "~/.emacs/dc/dc-docker.el")
   (load-file "~/.emacs/dc/dc-docker-compose.el")
   (load-file "~/.emacs/dc/dc-tests.el")
+  (load-file "~/.emacs/dc/dc-helm.el")
   (load-file "~/.emacs/dc/dc-popups.el")
 #+END_SRC
+
+#+RESULTS:
+: t
 
 
 #+BEGIN_SRC emacs-lisp
@@ -106,7 +215,7 @@ You will need drone-cli to run these locally.
 
 #+BEGIN_SRC emacs-lisp
 (apply 'start-process (list "dc-process" "*testBuffer*" "docker" "exec" "-it" "nginx" "ls"))
-#+END_SRC
+#+Ehttps://github.com/maidstone-hackspace/maidstone-hackspace-website/issues/153ND_SRC
 
 #+RESULTS:
 : #<process dc-process>
@@ -118,7 +227,6 @@ You will need drone-cli to run these locally.
 
 #+RESULTS:
 : #<process dc-process>
-
 
 ** docker methods
 *** Pull image

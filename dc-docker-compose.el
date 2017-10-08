@@ -1,14 +1,13 @@
-;;; docker-compose.el --- a simple package                     -*- lexical-binding: t; -*-
+;;; dc-docker-compose.el --- Take control of your docker containers -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2016  Oliver Marks
+;; Copyright (C) 2017  Oliver Marks
 
 ;; Author: Oliver Marks <oly@digitaloctave.com>
 ;; URL: https://github.com/olymk2/emacs-docker
-;; Keywords: Docker Test 
+;; Keywords: Docker control magit popups tests
 ;; Version: 0.1
-;; Created 29 October 2016
-;; TODO remove / update this
-;; Package-Requires: ((projectile "0.14"))
+;; Created 13 October 2017
+;; Package-Requires: ((magit "2.5")(helm "2.5"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,100 +24,107 @@
 
 ;;; Commentary:
 
-;; TODO write this
+;; This provides a set of magit style popups for interacting with your containers.
+;; It wraps docker and docker-compose commands and allows you to select containers and toggle
+;; the various paramters passed to the commands.
+
+;; It can be extended to run tests inside containers and comes with some predefined setups, it
+;; should also be easy to add in your own common commands to the interactive popups
 
 ;;; Code:
 
-(require 'cl)
-(require 'dc-core)
 
-(defun dc-docker-compose-process (command &rest params)
+(require 'cl)
+
+;; return list of docker names
+(defun dc-compose-names ()
+  (interactive)
+  (if (dc-compose-exists)
+      (split-string (dc-compose-run-return "" "config" "--services" "") "\n" t)
+    nil))
+
+(defun dc-compose-process (command &rest params)
   (interactive)
   (dc-compose-exists-check)
-  (message "dc-docker-compose-process %s %s" command params)
-  (apply 'dc-process (append (list dc-buffer-name dc-docker-compose-cmd command) params)))
+  (message "dc-compose-process %s %s" command params)
+  (apply 'dc-process (append (list dc-buffer-name  dc-compose-cmd (concat "--file=" dc-compose-file) command) params)))
 
-;; TODO use default dir
-;; wrapper for compose shell commands &optional backgrounded
-(defun dc-docker-compose-run (container_name docker_cmd &rest params)
-  (let ((cmd (append (list container_name) params)))
-    (message "dc-docker-compose-run %s %s" cmd)
-  (dc-compose-exists-check)
-  (apply 'dc-docker-compose-process (append (list docker_cmd) cmd))))
+;; wrapper for compose shell commands
+(defun dc-compose-run (container_name &rest params)
+  (interactive (list (read-string "Container name:") (read-string "Shell command:")))
+  (let ((bind_path (docker-compose-bound-project-path container_name)))
+    (apply 'dc-compose-process (append (list container_name "run") command))))
 
-;;TODO use default dir
-;; wrapper for compose shell commands not backgrounded
-(defun dc-docker-compose-run-return (name command &rest params)
-  (unless background (setq background ""))
-  (message "%s" (concatenate 'string "dc-docker-compose-run-return docker" command name params background))
+;; wrapper for compose shell commands
+(defun dc-compose-run-return (name command &rest params)
   (dc-compose-exists-check)
   (let ((default-directory (dc-compose-root)))
   (shell-command-to-string
-   (concatenate 'string "docker-compose " command name params background))))
+   (concat dc-compose-cmd " " command " " name " " (mapconcat 'identity params " ")))))
 
-(defun dc-docker-compose-build ()
+(defun dc-compose-build (&rest params)
   "Build your compose project"
   (interactive)
-  (dc-docker-compose-process "build" "--no-color"))
+  (dc-compose-process "build"))
 
-(defun dc-docker-compose-up (container_name &optional flag)
+(defun dc-compose-up (&optional flag)
   "Runs compose up, with optional -d parameter"
-  (interactive (list (read-string "Container name:")))
+  (interactive)
   (unless flag (setq flag ""))
-  (dc-docker-compose-process "up" "-d"))
+  (dc-compose-process "up" "-d"))
 
-(defun dc-docker-compose-down ()
+(defun dc-compose-down ()
   "Runs compose down"
   (interactive)
-  (dc-docker-compose-process "down"))
+  (dc-compose-process "down"))
 
-(defun dc-docker-compose-logs (&optional flag)
+(defun dc-compose-logs (&optional flag)
   "Runs docker compose logs against the current project"
   (interactive)
   (unless flag (setq flag "")
-    (dc-docker-compose-process "logs" "--no-color")))
+    (dc-compose-process "logs" "--no-color")))
 
 ;; bring up your compose container
-(defun dc-docker-compose-ps (&optional flag)
-  (interactive)
-  (unless flag (setq flag ""))
-  ;;(with-current-buffer dc-buffer 
-  ;;(dc-docker-compose-run "" "ps" flag "")))
-  (dc-docker-compose-process "logs"))
+(defun dc-compose-ps (&rest args)
+  (interactive (list (docker-ps-popup)))
+  (magit-popup-quit)
+  (dc-compose-process (format "%s%s" (mapconcat 'identity args " ") "ps" "--no-color")))
 
 ;; Docker IP Addresses
-(defun dc-docker-compose-network ()
-  (loop for name in (dc-docker-compose-names) collect 
+(defun dc-compose-network ()
+  (loop for name in (dc-compose-names) collect
     (dc-docker-run-return name dc-str-addresses "" "")))
 
 ;; run a command on a compose container
-(defun dc-docker-compose-exec (name &rest command)
+(defun dc-compose-exec (name &rest command)
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
-  ;;(defvar name)
-  ;;(unless command (setq command (read-string "Shell Command:")))
-  (message "dc-dcker-compose-exec %s" name)
-  (message "dc-dcker-compose-exec %s" command)
-  (message "dc-dcker-compose-exec %s %s" name command)
   (let ((bind_path (docker-compose-bound-project-path name)))
-    (apply 'dc-docker-compose-run (append (list name "exec") command))))
-
+    (apply 'dc-compose-process (append (list name "exec") command))))
 
 ;; give a container name, map the project path to the container path if possible
 (defun docker-compose-bound-project-path (container)
-  (let ((container_path  
+  (let ((container_path
     (split-string
-    (substring 
-      (shell-command-to-string 
-      (format "docker inspect --format='{{ json .HostConfig.Binds }}' %s" container)) 1 -1) ","))) 
+    (substring
+      (shell-command-to-string
+      (format "docker inspect --format='{{ json .HostConfig.Binds }}' %s" container)) 1 -1) ",")))
 
     ;; clean up the result of json .HostConfig.Binds
     (defsubst clean-bind (name listpos)
       (nth listpos (split-string (substring name 1 -1) ":")))
 
     ;; loop through the binds and filters ones that don't match the root path
-    (loop for el in container_path if 
+    (loop for el in container_path if
       (string= (clean-bind el 0) (projectile-project-root)) collect (clean-bind el 1))))
 
+(ert-deftest pp-test-compose-process-function ()
+  "Test process wrapper joins parameters together correctly"
+  (setq dc-current-buffer "/")
+  (cl-letf (((symbol-function 'dc-process)
+             (lambda (&rest params) params)))
+    (should (equal
+             (dc-process "a" "b" "c")
+             (list "*Docker Info*" "/usr/bin/docker" "a" "b" "c")))))
 
-(provide 'dc-docker-compose) 
-;;; docker-compose.el ends here
+(provide 'dc-docker-compose)
+;;; dc-docker-compose.el ends here

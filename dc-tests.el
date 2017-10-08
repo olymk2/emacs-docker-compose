@@ -1,14 +1,13 @@
-;;; docker-compose.el --- a simple package                     -*- lexical-binding: t; -*-
+;;; dc-tests.el --- Take control of your docker containers -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2016  Oliver Marks
+;; Copyright (C) 2017  Oliver Marks
 
 ;; Author: Oliver Marks <oly@digitaloctave.com>
 ;; URL: https://github.com/olymk2/emacs-docker
-;; Keywords: Docker Test 
+;; Keywords: Docker control magit popups tests
 ;; Version: 0.1
-;; Created 29 October 2016
-;; TODO remove / update this
-;; Package-Requires: ((projectile "0.14"))
+;; Created 13 October 2017
+;; Package-Requires: ((magit "2.5")(helm "2.5"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -25,11 +24,17 @@
 
 ;;; Commentary:
 
-;; TODO write this
+;; This provides a set of magit style popups for interacting with your containers.
+;; It wraps docker and docker-compose commands and allows you to select containers and toggle
+;; the various paramters passed to the commands.
+
+;; It can be extended to run tests inside containers and comes with some predefined setups, it
+;; should also be easy to add in your own common commands to the interactive popups
 
 ;;; Code:
 
 (require 'magit)
+(require 'dc-helm)
 (require 'dc-docker-compose)
 
 (defun dc-python-get-test-name ()
@@ -63,7 +68,7 @@
 )
 
 
-(defun dc-python-test ()
+(defun dc-compose-python-test ()
   (interactive (list (read-string "Container name:")))
   ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
   (message "docker-compose exec -it hackdev_django_1 sh -c \"./vendor/bin/phpunit --filter=%s ./%s\"" (dc-python-get-test-name) (dc-get-current-test-file))
@@ -72,18 +77,19 @@
   ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
 
 ;; Assumes you enter into your project root and that phpunit exists in the vendor folder
-(defun dc-php-test (container_name)
-  (interactive (list (read-string "Container name:")))
+(defun dc-compose-php-test ()
+  ;; (interactive (list (dc-select-container "Container name:")))
+  (dc-select-container "Container name:")
   (let ((cmd
          (list "sh" "-c"
            (concat "\"./vendor/bin/phpunit --filter=" (dc-phpunit-get-test-name) " ./" (dc-get-current-test-file) "\"")
            )
           )
          )
-    (message "dc-php-test %s %s" container_name cmd)
-    (dc-docker-compose-exec container_name cmd)))
+    (message "dc-php-test %s %s" dc-current-compose-container cmd)
+    (apply 'dc-compose-process (append (list "exec" dc-current-compose-container) cmd))))
 
 
 
 (provide 'dc-tests)
-;;; dc-popup.el ends here
+;;; dc-tests.el ends here
