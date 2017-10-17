@@ -2,4 +2,4 @@ pipeline:
   build:
     image: olymk2/emacs-testing
     commands:
-      - emacs -batch -l /drone/src/tests/.emacs.d/init.el -l hydra -l ert-docker-compose.el -f ert-run-tests-batch-and-exit
+      - emacs -batch -l /drone/src/tests/.emacs.d/init.el -l ert-core.el -l ert-docker.el -l ert-docker-compose.el -f ert-run-tests-batch-and-exit
