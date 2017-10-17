@@ -15,6 +15,6 @@
 (require 'cl)
 (load-file "../dc-core.el")
 (load-file "../dc-docker.el")
-(load-file "../dc-docker-compose.el")
+(load-file "../dc-compose.el")
 
 (ert-run-tests-batch-and-exit)

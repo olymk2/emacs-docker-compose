@@ -1,3 +1,10 @@
+;;; ert-docker.el --- test
+
+;;; Commentary:
+;; tests for docker functions
+
+;;; Code:
+
 (load-file "dc-core.el")
 (load-file "dc-docker.el")
 
@@ -25,9 +32,13 @@
   "Test process wrapper joins parameters together correctly"
   (setq dc-current-buffer "/")
   (setq dc-docker-cmd "/usr/bin/docker")
-  (cl-letf (((symbol-function 'dc-process)
+  (cl-letf (((symbol-function 'dc-core-process)
              (lambda (&rest params) params)))
     (should (equal
              (dc-docker-process "a" "b" "c")
              (list "*Docker Info*" "/usr/bin/docker" "a" "b" "c")))))
 
+
+(provide 'ert-docker)
+
+;;; ert-docker.el ends here

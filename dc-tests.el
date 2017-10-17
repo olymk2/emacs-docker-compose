@@ -35,9 +35,10 @@
 
 (require 'magit)
 (require 'dc-helm)
-(require 'dc-docker-compose)
+(require 'dc-compose)
 
 (defun dc-python-get-test-name ()
+  "Find function nearest the cursor."
   (interactive)
   (re-search-backward "def ")
   (forward-word)
@@ -45,6 +46,7 @@
   (thing-at-point 'word))
 
 (defun dc-phpunit-get-test-name ()
+  "Find function nearest the cursor."
   (interactive)
   (re-search-backward "function ")
   (forward-word)
@@ -52,23 +54,21 @@
   (thing-at-point 'word))
 
 (defun dc-test-file ()
+  "Get current buffers filename and return relative to project root."
   (interactive)
   (replace-regexp-in-string (docker-compose-bound-project-path) "" buffer-file-name)
   )
 
 ;; adjust path to be relative to project root
 (defun dc-get-current-test-file ()
+  "Get current buffers filename and return relative to project root."
   (interactive)
   (file-relative-name buffer-file-name
                       (locate-dominating-file buffer-file-name "docker-compose.yml")))
 
-(defun dc-run-test (function_name)
-  (interactive)
-  (message "%s" function_name)
-)
-
 
 (defun dc-compose-python-test ()
+  "Generate python test command."
   (interactive (list (read-string "Container name:")))
   ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
   (message "docker-compose exec -it hackdev_django_1 sh -c \"./vendor/bin/phpunit --filter=%s ./%s\"" (dc-python-get-test-name) (dc-get-current-test-file))
@@ -78,8 +78,9 @@
 
 ;; Assumes you enter into your project root and that phpunit exists in the vendor folder
 (defun dc-compose-php-test ()
-  ;; (interactive (list (dc-select-container "Container name:")))
-  (dc-select-container "Container name:")
+  "Generate php test command and send to container."
+  ;; (interactive (list (dc-helm-choose-container "Container name:")))
+  (dc-helm-choose-container "Container name:")
   (let ((cmd
          (list "sh" "-c"
            (concat "\"./vendor/bin/phpunit --filter=" (dc-phpunit-get-test-name) " ./" (dc-get-current-test-file) "\"")

@@ -17,6 +17,14 @@ Add your own testing command, or add extra functionality to any popup
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp
+(message "%s" finder-known-keywords)
+
+#+END_SRC
+
+#+RESULTS:
+: ((abbrev . abbreviation handling, typing shortcuts, and macros) (bib . bibliography processors) (c . C and related programming languages) (calendar . calendar and time management tools) (comm . communications, networking, and remote file access) (convenience . convenience features for faster editing) (data . editing data (non-text) files) (docs . Emacs documentation facilities) (emulations . emulations of other editors) (extensions . Emacs Lisp language extensions) (faces . fonts and colors for text) (files . file editing and manipulation) (frames . Emacs frames and window systems) (games . games, jokes and amusements) (hardware . interfacing with system hardware) (help . Emacs help systems) (hypermedia . links between text or other media types) (i18n . internationalization and character-set support) (internal . code for Emacs internals, build process, defaults) (languages . specialized modes for editing programming languages) (lisp . Lisp support, including Emacs Lisp) (local . code local to your site) (maint . Emacs development tools and aids) (mail . email reading and posting) (matching . searching, matching, and sorting) (mouse . mouse support) (multimedia . images and sound) (news . USENET news reading and posting) (outlines . hierarchical outlining and note taking) (processes . processes, subshells, and compilation) (terminals . text terminals (ttys)) (tex . the TeX document formatter) (tools . programming tools) (unix . UNIX feature interfaces and emulators) (vc . version control) (wp . word processing))
+
+#+BEGIN_SRC emacs-lisp
   (add-to-list 'load-path "~/.emacs/dc/")
   (load "dc-popups")
 #+END_SRC
@@ -26,8 +34,8 @@ Add your own testing command, or add extra functionality to any popup
 
 Set spacemacs launcher keys
 #+BEGIN_SRC emacs-lisp
-      (evil-leader/set-key "d" 'dc-main-docker-compose-popup)
-      (evil-leader/set-key "D" 'dc-main-docker-popup)
+      (evil-leader/set-key "d" 'dc-popups-docker-compose)
+      (evil-leader/set-key "D" 'dc-popups-docker)
 #+END_SRC
 
 #+RESULTS:
@@ -48,190 +56,4 @@ Set spacemacs launcher keys
 (dc-docker-names)
 #+END_SRC
 
-#+RESULTS:
-| ims_container | ims_api_container | xe_container | agexus | agexuk | isis | nginx | goofy_hawking | affectionate_snyder | gerbil | gerbil_container | wiremock_container | agexuk_container | isis_container | selenium-hub | agexus_container | bmisapi_container | is_fs_volumes |
 
-** Handy
-
-#+BEGIN_SRC emacs-lisp
-(dc-docker-compose-process "exec" "ims sh -c \"./vendor/bin/phpunit --filter=testCanBeCreatedFromValidEmailAddress ./test_php.php\"")
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp
-(dc-docker-compose-process "exec" "ims" "ls" "-la")
-#+END_SRC
-
-#+RESULTS:
-
-#+BEGIN_SRC emacs-lisp
-  (dc-process "*testBuffer*" "docker" "exec" "-it" "nginx" "ls" "-la")
-#+END_SRC
-
-#+RESULTS:
-
-#+BEGIN_SRC emacs-lisp
-(search "--file" "--file dev.yml --test")
-#+END_SRC
-
-#+RESULTS:
-: 0
-
-#+BEGIN_SRC emacs-lisp
-(defun match-param-value (param args)
-  (string-match (format "%s%s%s"  "\\(" param "\\)\\([0-9A-z.]+\\)") args)
-  (match-string 2 args)
-)
-
-(defun fetch-docker-filename (args)
-  (let ((fname (match-param-value "--file" args)))
-  (unless fname (setq fname "docker-compose.yml"))
-  fname))
-
-;;(match-param-value "--file" "--predicate-test --filedev.yml --test")
-(fetch-docker-filename "--predicate-test --filedev2.yml --test")
-#+END_SRC
-
-#+RESULTS:
-: dev2.yml
-
-
-
-#+BEGIN_SRC emacs-lisp
-  (string-match "\\(--file\\)\\([A-z.]+\\)" "--filedev.yml --test")
-  (match-string 2 "-i --no-cache --filedev.yml --test")
-  ;
-                                          ; (string-match "--file" "--filedev.yml --test")
-#+END_SRC
-
-#+RESULTS:
-: dev.yml
-
-
-#+BEGIN_SRC emacs-lisp
-  (string-match "\\(--file+?\\)[A-z.]+" "--filedev.yml --test")
-  (match-string 0 "--filedev.yml --test")
-  ;
-                                          ; (string-match "--file" "--filedev.yml --test")
-#+END_SRC
-
-#+RESULTS:
-: --filedev.yml
-
-
-#+BEGIN_SRC emacs-lisp
-  (search-forward "--file" "a--filedev.yml --test")
-  ;; (string-match "--file" "--filedev.yml --test")
-#+END_SRC
-
-
-#+BEGIN_SRC emacs-lisp
-  (string-match "(?<=\file\s)" "a--filedev.yml --test")
-  (list ( match-beginning 0) ( match-end 0)) 
-  ;; (string-match "--file" "--filedev.yml --test")
-#+END_SRC
-
-#+RESULTS:
-| 0 | 17 |
-
-#+BEGIN_SRC emacs-lisp
-    (dc-docker-exec "ims" "sh" "-c" "./vendor/bin/phpunit ./tests/phpunit")
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp
-  ;; (load-file "dc-core.el")
-  (require 'dc-core)
-  (load-file "~/.emacs/dc/dc-docker.el")
-  (load-file "~/.emacs/dc/dc-docker-compose.el")
-  (load-file "~/.emacs/dc/dc-tests.el")
-  (load-file "~/.emacs/dc/dc-popups.el")
-#+END_SRC
-
-#+RESULTS:
-: dc-core
-
-#+BEGIN_SRC emacs-lisp
-  ;; (load-file "dc-core.el")
-  (load-file "~/.emacs/dc/dc-core.el")
-  (load-file "~/.emacs/dc/dc-docker.el")
-  (load-file "~/.emacs/dc/dc-docker-compose.el")
-  (load-file "~/.emacs/dc/dc-tests.el")
-  (load-file "~/.emacs/dc/dc-helm.el")
-  (load-file "~/.emacs/dc/dc-popups.el")
-#+END_SRC
-
-#+RESULTS:
-: t
-
-
-#+BEGIN_SRC emacs-lisp
-  (load-file "~/.emacs/dc/dc-popups.el")
-#+END_SRC
-
-#+RESULTS:
-: t
-
-#+BEGIN_SRC emacs-lisp
-  ;; (load-file "dc-core.el")
-  (load-directory "~/.emacs/dc")
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp
-(append (list "3" "4") (list((list "1" "2")))
-#+END_SRC
-
-#+RESULTS:
-| 3 | 4 | 1 | 2 |
-
-
-#+BEGIN_SRC emacs-lisp
-(start-process "docker-emacs" "*Test Buffer*" "docker-compose" "exec" "ims ls")
-#+END_SRC
-
-#+RESULTS:
-: #<process docker-emacs>
-
-
-#+BEGIN_SRC emacs-lisp
-  (defun testDC()
-      (let ((dc-params (list "dc-process" "*testBuffer*" "docker" "exec" "-it" "nginx" "ls")))
-        (message "%s" dc-params)
-        (set-process-sentinel
-         (apply 'start-process (list "dc-process" "*testBuffer*" "docker" "exec" "-it" "nginx" "ls")) 'dc-sentinel-gettext)))
-
-  (testDC)
-#+END_SRC
-
-#+RESULTS:
-: dc-sentinel-gettext
-
-#+BEGIN_SRC emacs-lisp
-(set-process-sentinel
-(apply 'start-process (list "dc-process" "*testBuffer*" "docker" "exec" "-it" "nginx" "ls")) 'dc-sentinel-gettext)
-#+END_SRC
-
-#+RESULTS:
-: dc-sentinel-gettext
-
-
-#+BEGIN_SRC emacs-lisp
-(apply 'start-process (list "dc-process" "*testBuffer*" "docker" "exec" "-it" "nginx" "ls"))
-#+Ehttps://github.com/maidstone-hackspace/maidstone-hackspace-website/issues/153ND_SRC
-
-#+RESULTS:
-: #<process dc-process>
-
-
-#+BEGIN_SRC emacs-lisp
-(start-process "dc-process" "*testBuffer*" "docker" "exec" "-it" "nginx" "ls")
-#+END_SRC
-
-#+RESULTS:
-: #<process dc-process>
-
-** docker methods
-*** Pull image
-#+BEGIN_SRC emacs-lisp
-(dc-docker-pull "postgres")
-#+END_SRC
-
-#+RESULTS:

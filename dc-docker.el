@@ -4,10 +4,10 @@
 
 ;; Author: Oliver Marks <oly@digitaloctave.com>
 ;; URL: https://github.com/olymk2/emacs-docker
-;; Keywords: Docker control magit popups tests
+;; Keywords: Processes tools
 ;; Version: 0.1
 ;; Created 13 October 2017
-;; Package-Requires: ((magit "2.5")(helm "2.5"))
+;; Package-Requires: ((magit "2.5")(helm "2.5")(emacs "24.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -35,73 +35,87 @@
 
 (require 'cl)
 
-
 (defun dc-docker-process (command &rest params)
+  "Core docker wrapper function, to add buffer and cmd path.
+`COMMAND'    -- Docker command
+`PARAMS'     -- Extra params"
   (interactive)
   (let ((commands (append (list dc-buffer-name dc-docker-cmd command) params)))
   (message "dc-docker-process %s" commands)
-  (apply 'dc-process commands)))
+  (apply 'dc-core-process commands)))
 
 ;;wrapper for docker shell commands backgrounded
 (defun dc-docker-run (name command params)
-  "Wrapper for docker commands, takes container name command params and background
-`name'       -- Container name
-`command'    -- Docker command
-`params'     -- Extra params
-`background' -- pass \"&\" for background"
-  (dc-process command name params))
+  "Wrapper for docker commands can probably be replaced with dc-docker-process.
+`NAME'       -- Container name
+`COMMAND'    -- Docker command
+`PARAMS'     -- Extra params"
+  (dc-core-process command name params))
 
 ;;wrapper for docker shell command but return as string not backgrounded
 (defun dc-docker-run-return (name command &rest params)
+  "Use shell to string and return result instantly blocking.
+`NAME'       -- Container name
+`COMMAND'    -- Docker command
+`PARAMS'     -- Extra params"
   (message "dc-docker-run-return%s" (concat dc-docker-cmd " " command " " name " " (mapconcat 'identity params " ")))
-  (let ((default-directory (dc-compose-root)))
+  (let ((default-directory (dc-core-compose-root)))
   (shell-command-to-string
    (concat dc-docker-cmd " " command " " name " " (mapconcat 'identity params " ")))))
 
+;; wrapper command should probably deprecate
 (defun dc-docker-shell (command &rest params)
+  "Wrapper should probably use dc-process now.
+`COMMAND'    -- Docker command
+`PARAMS'     -- Extra params"
   (interactive)
-  (apply 'dc-process (append (list dc-buffer-shell-name dc-docker-cmd command) params))) 
+  (apply 'dc-core-process (append (list dc-buffer-shell-name dc-docker-cmd command) params)))
 
 
 (defun dc-docker-build (tagname)
-  "Starts a docker build, will prompt for a tag name
-  `tagname' -- Name to tag the build with"
+  "Start a docker build, will prompt for a tag name.
+`TAGNAME'    -- Name to tag the build with"
   (interactive (list (read-string "Tag name:")))
   (dc-dockerfile-exists-check)
   (dc-docker-process "build" "-t" tagname "."))
 
 (defun dc-docker-logs (&rest flags)
-  "Runs docker logs against a container"
-  (dc-select-container "Container name:")
+  "Run docker logs against a container.
+FLAGS        -- extra build flags"
+  (dc-helm-choose-container "Container name:")
   (unless flags (setq flags (list)))
   (apply 'dc-docker-process (append (list "logs" dc-current-docker-container) flags)))
 
-;; Docker IP Addresses
-(defun dc-docker-network-test ()
-  (interactive)
-  (dc-docker-run "gogs" dc-str-addresses ""))
 
 ;; Docker IP Addresses
 (defun dc-docker-network ()
-  (with-current-buffer dc-buffer 
+  "Wrapper command for ps to return the ip addresses."
+  (with-current-buffer dc-buffer
   (loop for name in (dc-docker-names) collect
     (dc-docker-run-return name dc-str-addresses "" ""))))
 
 ;; run a command on a docker container
 (defun dc-docker-exec (name &rest command)
+  "Docker exec wrapper.
+NAME         -- name of container
+COMMAND      -- command to exec inside container"
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
   (unless command (setq command (read-string "Shell Command:")))
   (message "dc-docker-exec %s %s" name command)
   (apply 'dc-docker-shell (append (list "exec" "-it" name) command)))
 
 ;; run a command on a docker container
-(defun dc-docker-pull (name &rest command)
+(defun dc-docker-pull (name &rest params)
+  "Docker pull wrapper.
+NAME         -- name of image
+PARAMS       -- flags to append to pull"
   (interactive (list (read-string "Image name:")))
-  (message "dc-docker-pull %s %s" name command)
-  (apply 'dc-docker-shell (append (list "pull" name) command)))
+  (message "dc-docker-pull %s %s" name params)
+  (apply 'dc-docker-shell (append (list "pull" name) params)))
 
 ;; return list of docker names
 (defun dc-docker-names ()
+  "Return a list of all docker containers."
   (interactive)
   (let ((container_ids (split-string (dc-docker-run-return "" "ps" "-q" "" "") "\n" t)))
     (message "dc-docker-names %s" container_ids)
@@ -113,6 +127,8 @@
 
 ;; return list of docker names
 (defun dc-docker-ps (&rest params)
+  "Wrapper for ps command.
+PARAMS      -- extra params"
   (interactive)
   (message "dc-docker-ps %s" params)
   (apply 'dc-docker-shell (append (list "ps") params)))

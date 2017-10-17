@@ -4,10 +4,10 @@
 
 ;; Author: Oliver Marks <oly@digitaloctave.com>
 ;; URL: https://github.com/olymk2/emacs-docker
-;; Keywords: Docker control magit popups tests
+;; Keywords: Processes tools
 ;; Version: 0.1
 ;; Created 13 October 2017
-;; Package-Requires: ((magit "2.5")(helm "2.5"))
+;; Package-Requires: ((magit "2.5")(helm "2.5")(emacs "24.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,21 +34,28 @@
 ;;; Code:
 
 
-(defun dc-select-container (msg)
+(defun dc-helm-choose-container (msg)
+  "Wrapper to select container, should fall back if helm is not available.
+MSG           -- message to display"
   (interactive)
   (dc-helm-select-container)
-  (message "dc-select-container %s" dc-current-docker-container))
+  (message "dc-helm-choose-container %s" dc-current-docker-container))
 
 (defun dc-helm-set-docker-container (container_name)
+  "Set current container for future commands.
+CONTAINER_NAME        -- name of container"
   (message "dc-helm-set-docker-container %s" container_name)
   (setq dc-current-docker-container container_name))
 
 (defun dc-helm-set-compose-container (container_name)
+  "Set current compose container for future commands.
+CONTAINER_NAME        -- name of container"
   (message "dc-helm-set-docker-compose-container %s" container_name)
   (setq dc-current-compose-container container_name))
 
 ;; show helm view to select container by name
 (defun dc-helm-select-container ()
+  "Build and open the helm container selection."
   (interactive)
   (setq helm-docker-containers
         '((name . "Docker Containers")
