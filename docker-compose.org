@@ -5,12 +5,12 @@ C-c d Show compose menu
 
 Get list of all container names
 #+BEGIN_SRC emacs-lisp
-  (dc-docker-names)
+  (dc-popups-docker-names)
 #+END_SRC
 
 Get list of all compose container names, looks for a compose file from current buffer
 #+BEGIN_SRC emacs-lisp
-  (dc-docker-compose-names)
+  (dc-popups-docker-compose-names)
 #+END_SRC
 
 Install docker compose plugin
@@ -36,5 +36,5 @@ Install docker compose plugin
 * tests
 
 #+BEGIN_SRC elisp
-(message (dc-docker-names))
+(message (dc-popups-docker-names))
 #+END_SRC

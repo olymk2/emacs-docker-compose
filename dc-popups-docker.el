@@ -1,4 +1,4 @@
-;;; dc-docker.el --- Take control of your docker containers -*- lexical-binding: t; -*-
+;;; dc-popups-docker.el --- Take control of your docker containers -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017  Oliver Marks
 
@@ -35,104 +35,106 @@
 
 (require 'cl)
 
-(defun dc-docker-process (command &rest params)
+(defun dc-popups-docker-select-container()
+  "Prompt user to pick container from a list."
+  (interactive)
+  (setq dc-popups-current-docker-container (ido-completing-read "Select container:" (dc-popups-docker-names))))
+
+(defun dc-popups-docker-process (command &rest params)
   "Core docker wrapper function, to add buffer and cmd path.
 `COMMAND'    -- Docker command
 `PARAMS'     -- Extra params"
   (interactive)
-  (let ((commands (append (list dc-buffer-name dc-docker-cmd command) params)))
-  (message "dc-docker-process %s" commands)
-  (apply 'dc-core-process commands)))
+  (let ((commands (append (list dc-popups-buffer-name dc-popups-docker-cmd command) params)))
+  (message "dc-popups-docker-process %s" commands)
+  (apply 'dc-popups-core-process commands)))
 
 ;;wrapper for docker shell commands backgrounded
-(defun dc-docker-run (name command params)
-  "Wrapper for docker commands can probably be replaced with dc-docker-process.
+(defun dc-popups-docker-run (name command params)
+  "Wrapper for docker commands can probably be replaced with dc-popups-docker-process.
 `NAME'       -- Container name
 `COMMAND'    -- Docker command
 `PARAMS'     -- Extra params"
-  (dc-core-process command name params))
+  (dc-popups-core-process command name params))
 
 ;;wrapper for docker shell command but return as string not backgrounded
-(defun dc-docker-run-return (name command &rest params)
+(defun dc-popups-docker-run-return (name command &rest params)
   "Use shell to string and return result instantly blocking.
 `NAME'       -- Container name
 `COMMAND'    -- Docker command
 `PARAMS'     -- Extra params"
-  (message "dc-docker-run-return%s" (concat dc-docker-cmd " " command " " name " " (mapconcat 'identity params " ")))
-  (let ((default-directory (dc-core-compose-root)))
+  (message "dc-popups-docker-run-return%s" (concat dc-popups-docker-cmd " " command " " name " " (mapconcat 'identity params " ")))
+  (let ((default-directory (dc-popups-core-compose-root)))
   (shell-command-to-string
-   (concat dc-docker-cmd " " command " " name " " (mapconcat 'identity params " ")))))
+   (concat dc-popups-docker-cmd " " command " " name " " (mapconcat 'identity params " ")))))
 
 ;; wrapper command should probably deprecate
-(defun dc-docker-shell (command &rest params)
+(defun dc-popups-docker-shell (command &rest params)
   "Wrapper should probably use dc-process now.
 `COMMAND'    -- Docker command
 `PARAMS'     -- Extra params"
   (interactive)
-  (apply 'dc-core-process (append (list dc-buffer-shell-name dc-docker-cmd command) params)))
+  (apply 'dc-popups-core-process (append (list dc-popups-buffer-shell-name dc-popups-docker-cmd command) params)))
 
 
-(defun dc-docker-build (tagname)
+(defun dc-popups-docker-build (tagname)
   "Start a docker build, will prompt for a tag name.
 `TAGNAME'    -- Name to tag the build with"
   (interactive (list (read-string "Tag name:")))
-  (dc-dockerfile-exists-check)
-  (dc-docker-process "build" "-t" tagname "."))
+  (dc-popups-dockerfile-exists-check)
+  (dc-popups-docker-process "build" "-t" tagname "."))
 
-(defun dc-docker-logs (&rest flags)
+(defun dc-popups-docker-logs (&rest flags)
   "Run docker logs against a container.
 FLAGS        -- extra build flags"
-  (dc-helm-choose-container "Container name:")
+  (dc-popups-docker-select-container)
   (unless flags (setq flags (list)))
-  (apply 'dc-docker-process (append (list "logs" dc-current-docker-container) flags)))
+  (apply 'dc-popups-docker-process (append (list "logs" dc-popups-current-docker-container) flags)))
 
 
 ;; Docker IP Addresses
-(defun dc-docker-network ()
+(defun dc-popups-docker-network ()
   "Wrapper command for ps to return the ip addresses."
-  (with-current-buffer dc-buffer
-  (loop for name in (dc-docker-names) collect
-    (dc-docker-run-return name dc-str-addresses "" ""))))
+  (with-current-buffer dc-popups-buffer
+  (loop for name in (dc-popups-docker-names) collect
+    (dc-popups-docker-run-return name dc-popups-str-addresses "" ""))))
 
 ;; run a command on a docker container
-(defun dc-docker-exec (name &rest command)
+(defun dc-popups-docker-exec (name &rest command)
   "Docker exec wrapper.
 NAME         -- name of container
 COMMAND      -- command to exec inside container"
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
   (unless command (setq command (read-string "Shell Command:")))
-  (message "dc-docker-exec %s %s" name command)
-  (apply 'dc-docker-shell (append (list "exec" "-it" name) command)))
+  (message "dc-popups-docker-exec %s %s" name command)
+  (apply 'dc-popups-docker-shell (append (list "exec" "-it" name) command)))
 
 ;; run a command on a docker container
-(defun dc-docker-pull (name &rest params)
+(defun dc-popups-docker-pull (name &rest params)
   "Docker pull wrapper.
 NAME         -- name of image
 PARAMS       -- flags to append to pull"
   (interactive (list (read-string "Image name:")))
-  (message "dc-docker-pull %s %s" name params)
-  (apply 'dc-docker-shell (append (list "pull" name) params)))
+  (message "dc-popups-docker-pull %s %s" name params)
+  (apply 'dc-popups-docker-shell (append (list "pull" name) params)))
 
 ;; return list of docker names
-(defun dc-docker-names ()
+(defun dc-popups-docker-names ()
   "Return a list of all docker containers."
   (interactive)
-  (let ((container_ids (split-string (dc-docker-run-return "" "ps" "-q" "" "") "\n" t)))
-    (message "dc-docker-names %s" container_ids)
-    (message "dc-docker-names %s" (car container_ids))
-    (message "dc-docker-names %s" (substring (car container_ids) 1 -1))
+  (let ((container_ids (split-string (dc-popups-docker-run-return "" "ps" "-q" "" "") "\n" t)))
     (loop for el in container_ids collect
-      (substring (dc-docker-run-return el "inspect" "-f\"{{ .Name }}\"" "") 1 -1))))
+      (substring (dc-popups-docker-run-return el "inspect" "-f\"{{ .Name }}\"" "") 1 -1))))
 
 
 ;; return list of docker names
-(defun dc-docker-ps (&rest params)
+(defun dc-popups-docker-ps (&rest params)
   "Wrapper for ps command.
 PARAMS      -- extra params"
   (interactive)
-  (message "dc-docker-ps %s" params)
-  (apply 'dc-docker-shell (append (list "ps") params)))
+  (message "dc-popups-docker-ps %s" params)
+  (apply 'dc-popups-docker-shell (append (list "ps") params)))
 
 
-(provide 'dc-docker)
-;;; dc-docker.el ends here
+(provide 'dc-popups-docker)
+;;; dc-popups-docker.el ends here

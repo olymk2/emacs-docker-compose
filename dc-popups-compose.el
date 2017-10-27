@@ -1,4 +1,4 @@
-;;; dc-compose.el --- Take control of your docker containers -*- lexical-binding: t; -*-
+;;; dc-popups-compose.el --- Take control of your docker containers -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017  Oliver Marks
 
@@ -36,93 +36,97 @@
 
 (require 'cl)
 
-;; return list of docker names
-(defun dc-compose-names ()
+(defun dc-popups-docker-select-container()
+  "Prompt user to pick container from a list."
+  (interactive)
+  (setq dc-popups-current-compose-container (ido-completing-read "Select container:" (dc-popups-compose-names))))
+
+(defun dc-popups-compose-names ()
   "Return a list of compose containers for current project."
   (interactive)
-  (if (dc-core-compose-exists)
-      (split-string (dc-compose-run-return "" "config" "--services" "") "\n" t)
+  (if (dc-popups-core-compose-exists)
+      (split-string (dc-popups-compose-run-return "" "config" "--services" "") "\n" t)
     nil))
 
-(defun dc-compose-process (command &rest params)
+(defun dc-popups-compose-process (command &rest params)
   "Core compose wrapper function, to add buffer and cmd path.
 `COMMAND'    -- Docker command
 `PARAMS'     -- Extra params"
   (interactive)
-  (dc-core-compose-exists-check)
-  (message "dc-compose-process %s %s" command params)
-  (apply 'dc-core-process (append (list dc-buffer-name  dc-compose-cmd (concat "--file=" dc-compose-file) command) params)))
+  (dc-popups-core-compose-exists-check)
+  (message "dc-popups-compose-process %s %s" command params)
+  (apply 'dc-popups-core-process (append (list dc-popups-buffer-name  dc-popups-compose-cmd (concat "--file=" dc-popups-compose-file) command) params)))
 
 ;; wrapper for compose shell commands
-(defun dc-compose-run (container_name &rest params)
+(defun dc-popups-compose-run (container_name &rest params)
   "Wrapper for compose run commands.
 CONTAINER_NAME   -- name of container to run command against
 PARAMS           -- extra run params"
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
   (let ((bind_path (docker-compose-bound-project-path container_name)))
-    (apply 'dc-compose-process (append (list container_name "run") command))))
+    (apply 'dc-popups-compose-process (append (list container_name "run") command))))
 
 ;; wrapper for compose shell commands
-(defun dc-compose-run-return (name command &rest params)
+(defun dc-popups-compose-run-return (name command &rest params)
   "Wrapper for compose commands but blocking instant return.
 NAME             -- name of container to run command against
 COMMAND          -- compose command to run
 PARAMS           -- extra run params"
-  (dc-core-compose-exists-check)
-  (let ((default-directory (dc-core-compose-root)))
+  (dc-popups-core-compose-exists-check)
+  (let ((default-directory (dc-popups-core-compose-root)))
   (shell-command-to-string
-   (concat dc-compose-cmd " " command " " name " " (mapconcat 'identity params " ")))))
+   (concat dc-popups-compose-cmd " " command " " name " " (mapconcat 'identity params " ")))))
 
-(defun dc-compose-build (&rest params)
+(defun dc-popups-compose-build (&rest params)
   "Build your compose project.
 PARAMS       -- extra build params"
   (interactive)
-  (dc-compose-process "build"))
+  (dc-popups-compose-process "build"))
 
-(defun dc-compose-up (&optional flag)
+(defun dc-popups-compose-up (&optional flag)
   "Run compose up, with optional -d parameter.
 FLAG              -- extra up params"
   (interactive)
   (unless flag (setq flag ""))
-  (dc-compose-process "up" "-d"))
+  (dc-popups-compose-process "up" "-d"))
 
-(defun dc-compose-down ()
+(defun dc-popups-compose-down ()
   "Run compose down."
   (interactive)
-  (dc-compose-process "down"))
+  (dc-popups-compose-process "down"))
 
-(defun dc-compose-logs (&optional flag)
+(defun dc-popups-compose-logs (&optional flag)
   "Run docker compose logs against the current project.
 FLAG       -- extra build params"
   (interactive)
   (unless flag (setq flag "")
-    (dc-compose-process "logs" "--no-color")))
+    (dc-popups-compose-process "logs" "--no-color")))
 
 ;; bring up your compose container
-(defun dc-compose-ps (&rest args)
+(defun dc-popups-compose-ps (&rest args)
   "Run docker compose ps against the current project.
 ARGS       -- extra build params"
   (interactive (list (docker-ps-popup)))
   (magit-popup-quit)
-  (dc-compose-process (format "%s%s" (mapconcat 'identity args " ") "ps" "--no-color")))
+  (dc-popups-compose-process (format "%s%s" (mapconcat 'identity args " ") "ps" "--no-color")))
 
 ;; Docker IP Addresses
-(defun dc-compose-network ()
+(defun dc-popups-compose-network ()
   "PS wrapper with nicer format."
-  (loop for name in (dc-compose-names) collect
-    (dc-docker-run-return name dc-str-addresses "" "")))
+  (loop for name in (dc-popups-compose-names) collect
+    (dc-popups-docker-run-return name dc-popups-str-addresses "" "")))
 
 ;; run a command on a compose container
-(defun dc-compose-exec (name &rest flags)
+(defun dc-popups-compose-exec (name &rest flags)
   "Wrapper around compose exec command.
 NAME          -- name of container
 FLAGS         -- extra flags"
   (interactive (list (read-string "Container name:") (read-string "Shell command:")))
   (let ((bind_path (docker-compose-bound-project-path name)))
-    (apply 'dc-compose-process (append (list name "exec") flags))))
+    (apply 'dc-popups-compose-process (append (list name "exec") flags))))
 
 ;; give a container name, map the project path to the container path if possible
-(defun dc-compose-bound-project-path (container)
+(defun dc-popups-compose-bound-project-path (container)
   "Helper function match path in container with path outside container.
 CONTAINER          -- name of container"
   (let ((container_path
@@ -132,16 +136,16 @@ CONTAINER          -- name of container"
       (format "docker inspect --format='{{ json .HostConfig.Binds }}' %s" container)) 1 -1) ",")))
 
     ;; clean up the result of json .HostConfig.Binds
-    (defsubst dc-compose-clean-bind (name listpos)
+    (defsubst dc-popups-compose-clean-bind (name listpos)
       (nth listpos (split-string (substring name 1 -1) ":")))
 
     ;; loop through the binds and filters ones that don't match the root path
     (loop for el in container_path if
           (string=
-           (dc-compose-clean-bind el 0)
+           (dc-popups-compose-clean-bind el 0)
            (projectile-project-root)) collect
-           (dc-compose-clean-bind el 1))))
+           (dc-popups-compose-clean-bind el 1))))
 
 
-(provide 'dc-compose)
-;;; dc-compose.el ends here
+(provide 'dc-popups-compose)
+;;; dc-popups-compose.el ends here

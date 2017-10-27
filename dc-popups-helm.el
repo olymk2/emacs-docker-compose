@@ -1,4 +1,4 @@
-;;; dc-helm.el --- Take control of your docker containers -*- lexical-binding: t; -*-
+;;; dc-popups-helm.el --- Take control of your docker containers -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017  Oliver Marks
 
@@ -34,45 +34,43 @@
 ;;; Code:
 
 
-(defun dc-helm-choose-container (msg)
-  "Wrapper to select container, should fall back if helm is not available.
-MSG           -- message to display"
+(defun dc-popups-docker-select-container ()
+  "Wrapper to select container, should fall back if helm is not available."
   (interactive)
-  (dc-helm-select-container)
-  (message "dc-helm-choose-container %s" dc-current-docker-container))
+  (dc-popups-helm-select-container))
 
-(defun dc-helm-set-docker-container (container_name)
+(defun dc-popups-helm-set-docker-container (container_name)
   "Set current container for future commands.
 CONTAINER_NAME        -- name of container"
-  (message "dc-helm-set-docker-container %s" container_name)
-  (setq dc-current-docker-container container_name))
+  (message "dc-popups-helm-set-docker-container %s" container_name)
+  (setq dc-popups-current-docker-container container_name))
 
-(defun dc-helm-set-compose-container (container_name)
+(defun dc-popups-helm-set-compose-container (container_name)
   "Set current compose container for future commands.
 CONTAINER_NAME        -- name of container"
-  (message "dc-helm-set-docker-compose-container %s" container_name)
-  (setq dc-current-compose-container container_name))
+  (message "dc-popups-helm-set-docker-compose-container %s" container_name)
+  (setq dc-popups-current-compose-container container_name))
 
 ;; show helm view to select container by name
-(defun dc-helm-select-container ()
+(defun dc-popups-helm-select-container ()
   "Build and open the helm container selection."
   (interactive)
   (setq helm-docker-containers
         '((name . "Docker Containers")
-          (candidates . dc-docker-names)
+          (candidates . dc-popups-docker-names)
           (action . (("Run command inside container" . (lambda (candidate)
-                                                         (dc-helm-set-docker-container candidate)))
+                                                         (dc-popups-helm-set-docker-container candidate)))
                      ("Alternate command" . (lambda (candiadte) () ))))))
 
   ;; helm source for docker compose containers
   (setq helm-compose-containers
         '((name . "Docker Compose Containers")
-          (candidates . dc-compose-names)
+          (candidates . dc-popups-compose-names)
           (action . (lambda (candidate)
-                      (dc-helm-set-compose-container candidate)))))
+                      (dc-popups-helm-set-compose-container candidate)))))
 
   (helm :sources '(helm-compose-containers helm-docker-containers) :buffer "*helm container*"))
 
 ;;; (Features)
-(provide 'dc-helm)
-;;; dc-helm.el ends here
+(provide 'dc-popups-helm)
+;;; dc-popups-helm.el ends here

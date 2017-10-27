@@ -13,8 +13,8 @@
 (package-initialize)
 (package-refresh-contents)
 (require 'cl)
-(load-file "../dc-core.el")
-(load-file "../dc-docker.el")
-(load-file "../dc-compose.el")
+(load-file "../dc-popups-core.el")
+(load-file "../dc-popups-docker.el")
+(load-file "../dc-popups-compose.el")
 
 (ert-run-tests-batch-and-exit)

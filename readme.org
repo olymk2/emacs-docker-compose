@@ -42,18 +42,23 @@ Set spacemacs launcher keys
 
 ** Compose functions
 #+BEGIN_SRC emacs-lisp
-(dc-compose-names)
+(dc-popups-compose-names)
 #+END_SRC
 
 #+RESULTS:
 
 #+BEGIN_SRC emacs-lisp
-(dc-docker-run-return "" "config" "--services" "")
+(dc-popups-docker-run-return "" "config" "--services" "")
 #+END_SRC
 
 ** Docker functions
+List of detected containers
 #+BEGIN_SRC emacs-lisp
-(dc-docker-names)
+(dc-popups-docker-names)
 #+END_SRC
 
+Select a container, and store result in dc-popups-current-docker-container
+#+BEGIN_SRC emacs-lisp
+  (setq dc-popups-current-docker-container (ido-completing-read "Select container:" (dc-popups-docker-names)))
+#+END_SRC
 

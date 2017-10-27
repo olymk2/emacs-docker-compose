@@ -1,4 +1,4 @@
-;;; dc-tests.el --- Take control of your docker containers -*- lexical-binding: t; -*-
+;;; dc-popups-tests.el --- Take control of your docker containers -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2017  Oliver Marks
 
@@ -34,8 +34,8 @@
 ;;; Code:
 
 (require 'magit)
-(require 'dc-helm)
-(require 'dc-compose)
+(require 'dc-popups-helm)
+(require 'dc-popups-compose)
 
 (defun dc-python-get-test-name ()
   "Find function nearest the cursor."
@@ -67,30 +67,29 @@
                       (locate-dominating-file buffer-file-name "docker-compose.yml")))
 
 
-(defun dc-compose-python-test ()
+(defun dc-popups-compose-python-test ()
   "Generate python test command."
   (interactive (list (read-string "Container name:")))
-  ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
+  ;;(dc-popups-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
   (message "docker-compose exec -it hackdev_django_1 sh -c \"./vendor/bin/phpunit --filter=%s ./%s\"" (dc-python-get-test-name) (dc-get-current-test-file))
-  (dc-docker-compose-exec "hackdev_django_1"
+  (dc-popups-docker-compose-exec "hackdev_django_1"
                           (format "%s" (concatenate 'string "sh -c \"./vendor/bin/phpunit --filter=" (dc-python-get-test-name) "./" (dc-get-current-test-file) "\""))))
-  ;;(dc-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
+  ;;(dc-popups-docker-compose-exec "mhackspace_uwsgi" "import nose; nose.run()")pytest
 
 ;; Assumes you enter into your project root and that phpunit exists in the vendor folder
-(defun dc-compose-php-test ()
+(defun dc-popups-compose-php-test ()
   "Generate php test command and send to container."
-  ;; (interactive (list (dc-helm-choose-container "Container name:")))
-  (dc-helm-choose-container "Container name:")
+  (dc-popups-docker-select-container)
   (let ((cmd
          (list "sh" "-c"
            (concat "\"./vendor/bin/phpunit --filter=" (dc-phpunit-get-test-name) " ./" (dc-get-current-test-file) "\"")
            )
           )
          )
-    (message "dc-php-test %s %s" dc-current-compose-container cmd)
-    (apply 'dc-compose-process (append (list "exec" dc-current-compose-container) cmd))))
+    (message "dc-php-test %s %s" dc-popups-current-compose-container cmd)
+    (apply 'dc-popups-compose-process (append (list "exec" dc-popups-current-compose-container) cmd))))
 
 
 
-(provide 'dc-tests)
-;;; dc-tests.el ends here
+(provide 'dc-popups-tests)
+;;; dc-popups-tests.el ends here
