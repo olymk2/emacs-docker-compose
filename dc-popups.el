@@ -7,7 +7,7 @@
 ;; Keywords: Processes tools
 ;; Version: 0.1
 ;; Created 13 October 2017
-;; Package-Requires: ((magit "2.5")(helm "2.5")(emacs "24.3")(ido "2.0"))
+;; Package-Requires: ((magit "2.5")(helm "2.5")(emacs "24.3"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

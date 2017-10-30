@@ -73,7 +73,7 @@
 (defun dc-popups-select-container()
   "Prompt user to pick container from a list."
   (interactive)
-  (message "%s" (ido-completing-read "Open bookmark:" (dc-popups-docker-names))))
+  (message "%s" (completing-read "Open bookmark:" (dc-popups-docker-names))))
 
 
 (defun dc-popups-core-match-param-value (param args)

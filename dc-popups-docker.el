@@ -38,7 +38,7 @@
 (defun dc-popups-docker-select-container()
   "Prompt user to pick container from a list."
   (interactive)
-  (setq dc-popups-current-docker-container (ido-completing-read "Select container:" (dc-popups-docker-names))))
+  (setq dc-popups-current-docker-container (completing-read "Select container:" (dc-popups-docker-names))))
 
 (defun dc-popups-docker-process (command &rest params)
   "Core docker wrapper function, to add buffer and cmd path.

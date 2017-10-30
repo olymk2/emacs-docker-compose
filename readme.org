@@ -57,8 +57,9 @@ List of detected containers
 (dc-popups-docker-names)
 #+END_SRC
 
+
 Select a container, and store result in dc-popups-current-docker-container
 #+BEGIN_SRC emacs-lisp
-  (setq dc-popups-current-docker-container (ido-completing-read "Select container:" (dc-popups-docker-names)))
+  (setq dc-popups-current-docker-container (completing-read "Select container:" (dc-popups-docker-names)))
 #+END_SRC
 

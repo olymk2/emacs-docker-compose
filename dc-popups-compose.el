@@ -39,7 +39,7 @@
 (defun dc-popups-docker-select-container()
   "Prompt user to pick container from a list."
   (interactive)
-  (setq dc-popups-current-compose-container (ido-completing-read "Select container:" (dc-popups-compose-names))))
+  (setq dc-popups-current-compose-container (completing-read "Select container:" (dc-popups-compose-names))))
 
 (defun dc-popups-compose-names ()
   "Return a list of compose containers for current project."
