@@ -7,7 +7,7 @@
 ;; Keywords: Docker control magit popups tests
 ;; Version: 0.1
 ;; Created 13 October 2017
-;; Package-Requires: ((magit "2.5")(helm "2.5"))
+;; Package-Requires: ((magit "2.5"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@
 ;;; Code:
 
 (require 'magit)
-(require 'dc-popups-helm)
+
 (require 'dc-popups-compose)
 
 (defun dc-python-get-test-name ()
